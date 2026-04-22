@@ -165,3 +165,50 @@ def coefplot(model, labels):
         ax.set_title('Estimated coefficients (20 largest in absolute value)', fontsize=14)
     sns.despine()
     return fig, ax
+
+from sklearn.metrics import confusion_matrix, roc_auc_score, precision_score, log_loss
+
+def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, loss_fn=1, loss_fp=1):
+    """
+    Evaluates multiple classification models on the validation set using various performance metrics.
+
+    Parameters:
+    - models (list): List of trained classification models with `predict_proba` method.
+    - model_names (list): List of model names
+    - X_valid (DataFrame): Validation feature set.
+    - y_valid (array): True labels for validation.
+    - tau (float): Decision threshold for classification.
+
+    Returns:
+    - DataFrame: Comparison table with key metrics.
+    - y_prob (array): Predicted probabilities for all models (for plotting).
+    """
+    
+    columns = ['Decision Loss', 'SE', 'Sensitivity', 'Specificity', 'Precision', 'AUC', 'Cross-entropy']
+    results = pd.DataFrame(0.0, columns=columns, index=model_names)
+
+    y_valid = np.ravel(y_valid)  # Ensure correct shape
+    y_prob = np.zeros((len(y_valid), len(models)))  # Store probabilities
+
+    for i, model in enumerate(models):    
+        y_prob[:, i] = model.predict_proba(X_valid)[:, 1]  # Extract default probability
+        y_pred = (y_prob[:, i] > decision_threshold).astype(int)  # Apply threshold
+
+        # Compute loss using predefined loss matrix (False Negative = 5, False Positive = 1)
+        fn_mask = (y_pred != y_valid) & (y_pred == 0)  # False Negatives
+        fp_mask = (y_pred != y_valid) & (y_pred == 1)  # False Positives
+        loss = (loss_fn * fn_mask + loss_fp * fp_mask) # Average loss per loan
+
+        # Compute confusion matrix components
+        tn, fp, fn, tp = confusion_matrix(y_valid, y_pred).ravel()
+
+        # Store results
+        results.iloc[i, 0] = np.mean(loss)  # Average loss
+        results.iloc[i, 1] = np.std(loss) / np.sqrt(len(y_valid))  # Standard error
+        results.iloc[i, 2] = tp / (tp + fn)  # Sensitivity (Recall)
+        results.iloc[i, 3] = tn / (tn + fp)  # Specificity
+        results.iloc[i, 4] = precision_score(y_valid, y_pred)  # Precision
+        results.iloc[i, 5] = roc_auc_score(y_valid, y_prob[:, i])  # AUC
+        results.iloc[i, 6] = log_loss(y_valid, y_prob[:, i])  # Cross-entropy loss
+
+    return results.round(3), y_prob
