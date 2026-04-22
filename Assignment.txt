@@ -10,6 +10,13 @@ Variables to look at:
 • whether their visit frequency has been declining over time
 • demographic information like income and household size
 
+
+REMARKS on train/validation/test data: 
+
+- When creating training/validation split, split in resepct of diffferent houshold ids.  
+This is important for good generalisation of the model, so the model doesnt recognise a houshold from the training data 
+- Aim for 70 % training, 15 % validation and 15 % test data. 
+
 Reformulated task:  
 
 How would we distinguish between customer groups, to determine which customers are about to leave. 

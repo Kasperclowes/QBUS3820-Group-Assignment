@@ -1,0 +1,59 @@
+Most important predictors to focus on for our problem: 
+
+1. Transactions (critical)
+2. Customer level aggregates 
+3. Demographics 
+4. Coupons and coupon redemption 
+Moderate/less important predictors: 
+5. Promotions
+6. Campaing and campaign Descriptions
+7. Individual products 
+
+1. Transactions (CRITICAL): For each houshold id: 
+Recency → days since last purchase: 
+
+Frequency → number of purchases in last X weeks/months 
+
+Monetary value → spend trends
+
+Interpurchase time → gaps between visits
+
+Trend over time → is frequency dropping?
+
+2. Customer-Level Aggregates (Derived from Transactions)
+Rolling purchase frequency (e.g., last 4 weeks vs previous 4 weeks)
+Visit decline rate
+Spend decline rate
+
+3. Demographics (Moderate–High Value)
+Useful for segmentation and interaction effects, not as standalone predictors.
+Income vs churn rate
+Household size vs churn
+Age groups vs churn
+
+4. Coupons & Coupon Redemption (High Value)
+Very relevant for retention modelling.
+Redemption rate per customer
+Time since last redemption
+Do redeemers churn less?
+Response to past offers
+
+5. Promotions- Only useful if tied to behaviour.
+Did purchases occur during promotions?
+Does reliance on promotions correlate with churn?
+Alone → weak
+Combined with transactions → useful
+
+6. Campaigns & Campaign Descriptions
+Engagement history
+Marketing responsiveness
+EDA:
+Who received campaigns vs who returned?
+Campaign exposure vs inactivity
+
+7. Products- Only useful after aggregation.
+Raw product-level EDA is usually not helpful for churn directly.
+
+Category diversity (variety of products bought)
+Dependency on certain categories
+Drop in key category purchases
