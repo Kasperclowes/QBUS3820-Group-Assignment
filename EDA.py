@@ -60,7 +60,7 @@ def distplots(X, kde=True):
 
 def regplots(X, y):
     colors = ['#4E79A7','#F28E2C','#E15759','#76B7B2','#59A14F', 
-          '#EDC949','#AF7AA1','#FF9DA7','#9C755F','#BAB0AB']
+          '#EDC949','#AF7AA1','#FF9DA7',"#956D57",'#BAB0AB']
     sns.set_palette(colors) # set custom color scheme
 
     labels = list(X.columns)

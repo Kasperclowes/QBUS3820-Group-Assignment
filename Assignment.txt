@@ -11,7 +11,27 @@ Variables to look at:
 • demographic information like income and household size
 
 
+REMARKS on train/validation/test data: 
 
+- When creating training/validation split, split in resepct of diffferent houshold ids.  
+This is important for good generalisation of the model, so the model doesnt recognise a houshold from the training data 
+- Aim for 70 % training, 15 % validation and 15 % test data. 
+
+Reformulated task:  
+
+How would we distinguish between customer groups, to determine which customers are about to leave. 
+Given that we do not have distinct customer ids, only houshold ids, 
+The ML model's task (most likely a random forest with a classifier output) would be 
+to use a set of inputs, including a specific houshold id to predict if the houshold id is about to churn in the next few weeks (number),
+and its confidence/probability to do so.  
+
+The definition of a churn classification rely on: 
+
+- Amount of time between transcations over time
+- (For example no transaction in the past 4 weeks)
+
+In training data, this will be used as a churn/no churn 
+classifier to train the data. 
 
 Report structure: 
 
