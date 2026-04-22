@@ -10,8 +10,18 @@ Variables to look at:
 • whether their visit frequency has been declining over time
 • demographic information like income and household size
 
+Reformulated task:  
 
+How would we distinguish between customer groups, to determine which customers are about to leave. 
+Given that we do not have distinct customer ids, only houshold ids, 
+The ML model's task (most likely a random forest with a classifier output) would be 
+to use a set of inputs, including a specific houshold id to predict if the houshold id is about to churn in the next few weeks (number),
+and its confidence/probability to do so.  
 
+The definition of a churn classification rely on these predictors: 
+
+- Amount of time between transcations 
+- 
 
 Report structure: 
 
