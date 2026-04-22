@@ -12,7 +12,6 @@ import os
 
 # Load data directly from parquet files
 data_dir = 'completejourney_py/completejourney_py/data'
-
 transactions = pd.read_parquet(os.path.join(data_dir, 'transactions.parquet'))
 demographics = pd.read_parquet(os.path.join(data_dir, 'demographics.parquet'))
 products = pd.read_parquet(os.path.join(data_dir, 'products.parquet'))
@@ -238,7 +237,7 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
 #GENERAL DATA CLEANING 
 
 
-def clean_demographics(): 
+def clean_demographics(demographics): 
     demographics.info()
     missing_counts = demographics.isnull().sum()
     print(missing_counts)
@@ -257,6 +256,7 @@ def clean_demographics():
 
     print("HOUSEHOLD_COMP - Unique Values:")
     print(demographics['household_comp'].unique())
+    
 
 
 #-----------------------------------------------------------------------------------
