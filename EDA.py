@@ -2,10 +2,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
+from sklearn.model_selection import train_test_split
 # Plot settings
-import matplotlib.pyplot as plt
 import seaborn as sns
+
+#---------------------------------------------------------------------------------
+#RETRIEVING DATA FROM COMPLETEJOURNEY_Py
+import os
+
+# Load data directly from parquet files
+data_dir = 'completejourney_py/completejourney_py/data'
+
+transactions = pd.read_parquet(os.path.join(data_dir, 'transactions.parquet'))
+demographics = pd.read_parquet(os.path.join(data_dir, 'demographics.parquet'))
+products = pd.read_parquet(os.path.join(data_dir, 'products.parquet'))
+campaigns = pd.read_parquet(os.path.join(data_dir, 'campaigns.parquet'))
+campaign_descriptions = pd.read_parquet(os.path.join(data_dir, 'campaign_descriptions.parquet'))
+promotions = pd.read_parquet(os.path.join(data_dir, 'promotions.parquet'))
+#coupons = pd.read_parquet(os.path.join(data_dir, 'coupons.parquet'))
+#coupon_redemptions = pd.read_parquet(os.path.join(data_dir, 'coupon_redemptions.parquet'))
+
+#---------------------------------------------------------------------------------
+#HISTOGRAMS, TRANSFORMATIONS AND PLOTS 
+
 sns.set_style('ticks') # set default plot style
 colors = ['#4E79A7','#F28E2C','#E15759','#76B7B2','#59A14F', 
           '#EDC949','#AF7AA1','#FF9DA7','#9C755F','#BAB0AB']
@@ -212,3 +231,62 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
         results.iloc[i, 6] = log_loss(y_valid, y_prob[:, i])  # Cross-entropy loss
 
     return results.round(3), y_prob
+
+
+
+#---------------------------------------------------------------------------------
+#GENERAL DATA CLEANING 
+
+
+def clean_demographics(): 
+    demographics.info()
+    missing_counts = demographics.isnull().sum()
+    print(missing_counts)
+    demographics = demographics.drop(['home_ownership', 'marital_status'], axis=1)
+    
+    ordinal_categorical_demographics = ['age', 'income', 'household_size', 'kids_count']
+    nominal_categorical_demographics = ['household_comp']
+    
+    duplicates= demographics.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    #Checking unique values in ordinal categorical variables and nominal categorical variable
+    for col in ordinal_categorical_demographics:
+        print(f"\n{col.upper()} - Unique Values:")
+        print(demographics[col].unique())
+
+    print("HOUSEHOLD_COMP - Unique Values:")
+    print(demographics['household_comp'].unique())
+
+
+#-----------------------------------------------------------------------------------
+#If more data cleaning necessary do it here beforie splitting: 
+
+
+
+#---------------------------------------------------------------------------------  
+#Splitting demographics data into train/val/test sets 
+
+    # First split: 70% train, 30% temp (valid + test combined)
+    demographics_index_train, demographics_index_temp = train_test_split(
+        np.array(demographics.index),  
+        train_size=0.7,
+        random_state=5
+    )
+
+    # Second split: Split the 30% temp into 50% valid, 50% test
+    demographics_index_valid, demographics_index_test = train_test_split(
+        demographics_index_temp,
+        train_size=0.5,
+        random_state=5
+    )
+
+    demographics_train = demographics.loc[demographics_index_train,:].copy()
+    demographics_valid = demographics.loc[demographics_index_valid,:].copy()
+    demographics_test = demographics.loc[demographics_index_test,:].copy()
+
+    #Returning cleaned demographics data split into train/val/test sets 
+    #ready for merging with transactions data and model training/validation/testing
+    return demographics_train, demographics_valid, demographics_test
+
+
