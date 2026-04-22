@@ -1,0 +1,19 @@
+Report structure: 
+
+Your report should clearly communicate your analysis, modelling decisions, and recommendations
+in a concise, professional manner tailored to a business audience. Follow this structured outline
+carefully to ensure clarity, coherence, and alignment with the provided rubric.
+
+The report content should include: 
+
+• Executive summary (approx. 1/2-1 page)
+• Section 1: Problem formulation & business understanding (approx. 1-2 pages)
+• Section 2: Exploratory data analysis (EDA) (approx. 2-3 pages) (see EDA.py)
+• Section 3: Feature engineering (approx. 1-2 pages) (Feature_eng.py)
+• Section 4: Recommended models & justification (approx. 2 pages)
+• Section 5: Model evaluation & performance analysis (approx. 2 pages)
+• Section 6: Business insights (approx. 1-2 pages)
+• Section 7: Business implementation & impact (approx. 2-3 pages)
+• Appendix A: Model development & experimentation (approx. 3-5 pages)
+• Appendix B: Teamwork & project execution
+• Appendix C: Additional tables and figures (no page limit)
