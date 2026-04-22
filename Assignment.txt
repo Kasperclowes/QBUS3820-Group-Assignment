@@ -1,3 +1,18 @@
+Problem Statement: 
+
+Which customers are about to stop shopping with us? Without a model, the retailer has no way of
+knowing a customer is drifting away until it is too late to act. By predicting which customers are
+unlikely to shop in the next few weeks, the retailer can send a targeted retention offer to bring them
+back, saving the cost of acquiring a new customer. 
+Variables to look at:
+• how recently a customer last shopped
+• how frequently they shopped in the past
+• whether their visit frequency has been declining over time
+• demographic information like income and household size
+
+
+
+
 Report structure: 
 
 Your report should clearly communicate your analysis, modelling decisions, and recommendations
@@ -17,3 +32,5 @@ The report content should include:
 • Appendix A: Model development & experimentation (approx. 3-5 pages)
 • Appendix B: Teamwork & project execution
 • Appendix C: Additional tables and figures (no page limit)
+
+
