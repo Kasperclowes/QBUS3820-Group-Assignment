@@ -239,62 +239,6 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
 #---------------------------------------------------------------------------------
 #GENERAL DATA CLEANING (EDA)
 
-
-def clean_demographics(demographics): 
-    demographics.info()
-    missing_counts = demographics.isnull().sum()
-    print(missing_counts)
-    demographics = demographics.drop(['home_ownership', 'marital_status'], axis=1)
-    
-    ordinal_categorical_demographics = ['age', 'income', 'household_size', 'kids_count']
-    nominal_categorical_demographics = ['household_comp']
-    
-    duplicates= demographics.duplicated().sum()
-    print(f"Number of duplicate rows: {duplicates}")
-
-    #Checking unique values in ordinal categorical variables and nominal categorical variable
-    for col in ordinal_categorical_demographics:
-        print(f"\n{col.upper()} - Unique Values:")
-        print(demographics[col].unique())
-
-    print("HOUSEHOLD_COMP - Unique Values:")
-    print(demographics['household_comp'].unique())
-    
-
-
-#-----------------------------------------------------------------------------------
-#If more data cleaning necessary do it here beforie splitting: 
-
-
-
-#---------------------------------------------------------------------------------  
-#Splitting demographics data into train/val/test sets 
-
-    # First split: 70% train, 30% temp (valid + test combined)
-    demographics_index_train, demographics_index_temp = train_test_split(
-        np.array(demographics.index),  
-        train_size=0.7,
-        random_state=5
-    )
-
-    # Second split: Split the 30% temp into 50% valid, 50% test
-    demographics_index_valid, demographics_index_test = train_test_split(
-        demographics_index_temp,
-        train_size=0.5,
-        random_state=5
-    )
-
-    demographics_train = demographics.loc[demographics_index_train,:].copy()
-    demographics_valid = demographics.loc[demographics_index_valid,:].copy()
-    demographics_test = demographics.loc[demographics_index_test,:].copy()
-
-    #Returning cleaned demographics data split into train/val/test sets 
-    #ready for merging with transactions data and model training/validation/testing
-    return demographics_train, demographics_valid, demographics_test
-
-
-
-
 def clean_transactions(transactions):
     #GENERAL DATA CLEANING
     transactions.info()
@@ -354,6 +298,56 @@ def clean_transactions(transactions):
     print(f"Test transactions: {len(transactions_test)}")
     
     return transactions_train, transactions_valid, transactions_test
+
+
+def clean_demographics(demographics):
+    transactions_train, transactions_valid, transactions_test = clean_transactions(transactions)
+    demographics.info()
+    missing_counts = demographics.isnull().sum()
+    print(missing_counts)
+    demographics = demographics.drop(['home_ownership', 'marital_status'], axis=1)
+    
+    ordinal_categorical_demographics = ['age', 'income', 'household_size', 'kids_count']
+    nominal_categorical_demographics = ['household_comp']
+    
+    duplicates= demographics.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    #Checking unique values in ordinal categorical variables and nominal categorical variable
+    for col in ordinal_categorical_demographics:
+        print(f"\n{col.upper()} - Unique Values:")
+        print(demographics[col].unique())
+
+    print("HOUSEHOLD_COMP - Unique Values:")
+    print(demographics['household_comp'].unique())
+    demographics_train = demographics[demographics['household_id'].isin(transactions_train['household_id'])].copy()
+    demographics_valid = demographics[demographics['household_id'].isin(transactions_valid['household_id'])].copy()
+    demographics_test  = demographics[demographics['household_id'].isin(transactions_test['household_id'])].copy()
+
+    return demographics_train, demographics_valid, demographics_test
+    
+
+
+#-----------------------------------------------------------------------------------
+#If more data cleaning necessary do it here before splitting: 
+
+
+
+#---------------------------------------------------------------------------------  
+#Splitting demographics data into train/val/test sets 
+
+    demographics_train = demographics[demographics['household_id'].isin(train_households)].copy()
+    demographics_valid = demographics[demographics['household_id'].isin(valid_households)].copy()
+    demographics_test  = demographics[demographics['household_id'].isin(test_households)].copy()
+
+    #Returning cleaned demographics data split into train/val/test sets 
+    #ready for merging with transactions data and model training/validation/testing
+    return demographics_train, demographics_valid, demographics_test
+
+
+
+
+
 
 
 
