@@ -57,10 +57,10 @@ def churn(transactions, threshold_days=21):
         last_purchase['days_since_last_purchase'] >= threshold_days
     ).astype(int)
 
-    transactions_train, transactions_valid, transactions_test = eda.clean_transactions(transactions)
-
+    train_households, valid_households, test_households = eda.household_split(transactions)
     churn = last_purchase.set_index('household_id')['churn']
-    churn_train = churn[transactions['household_id'].isin(transactions_train['household_id'])]
-    churn_valid = churn[transactions['household_id'].isin(transactions_valid['household_id'])]
-    churn_test  = churn[transactions['household_id'].isin(transactions_test['household_id'])]
+    churn_train = churn[churn.index.isin(train_households)]
+    churn_valid = churn[churn.index.isin(valid_households)]
+    churn_test  = churn[churn.index.isin(test_households)]
+
     return churn, churn_train, churn_valid, churn_test
