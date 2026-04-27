@@ -354,3 +354,23 @@ def clean_transactions(transactions):
     print(f"Test transactions: {len(transactions_test)}")
     
     return transactions_train, transactions_valid, transactions_test
+
+
+
+
+def clean_promotions(promotions): 
+
+    promotions.info()
+    missing_counts = promotions.isnull().sum()
+    print("Missing values in promotions : ", missing_counts)
+    nominal_categorical_promotions = ["product_id", "store_id", "display_location", "mailer_location"]
+    ordinal_categorical_promotions = ["week"]
+    duplicates= promotions.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    for col in ordinal_categorical_promotions:
+        print(f"\n{col.upper()} - Unique Values:")
+        print(transactions[col].unique())
+
+        print("Week number- Unique Values:")
+        print(transactions['week'].unique())
