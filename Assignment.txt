@@ -1,3 +1,8 @@
+Dataset information: 
+https://cunningjames.github.io/completejourney_py/user-guide/datasets/
+
+
+
 Problem Statement: 
 
 Which customers are about to stop shopping with us? Without a model, the retailer has no way of
@@ -25,7 +30,7 @@ The ML model's task (most likely a random forest with a classifier output) would
 to use a set of inputs, including a specific houshold id to predict if the houshold id is about to churn in the next few weeks (number),
 and its confidence/probability to do so.  
 
-The definition of a churn classification rely on: 
+The DEFINITION of a CHURN classification RELY ON: 
 
 - Amount of time between transcations over time
 - (For example no transaction in the past 4 weeks)

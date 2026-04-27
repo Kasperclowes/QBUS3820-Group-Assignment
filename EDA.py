@@ -21,6 +21,9 @@ promotions = pd.read_parquet(os.path.join(data_dir, 'promotions.parquet'))
 #coupons = pd.read_parquet(os.path.join(data_dir, 'coupons.parquet'))
 #coupon_redemptions = pd.read_parquet(os.path.join(data_dir, 'coupon_redemptions.parquet'))
 
+def retrieve_data():
+    return transactions, demographics, products, campaigns, campaign_descriptions, promotions
+
 #---------------------------------------------------------------------------------
 #HISTOGRAMS, TRANSFORMATIONS AND PLOTS 
 
@@ -290,3 +293,56 @@ def clean_demographics(demographics):
     return demographics_train, demographics_valid, demographics_test
 
 
+
+
+def clean_transactions(transactions):
+    transactions.info()
+    continous_transactions = ["sales_value","retail_disc","coupon_disc","coupon_match_disc"]
+    discrete_transactions = ["quantity"]
+    nominal_categorical_transactions = ["household_id", "store_id", "basket_id", "product_id"]
+    ordinal_categorical_transactions = ["week"]
+    duplicates= transactions.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    for col in ordinal_categorical_transactions:
+        print(f"\n{col.upper()} - Unique Values:")
+        print(transactions[col].unique())
+
+    print("Week number- Unique Values:")
+    print(transactions['week'].unique())
+
+
+    # Split transactions data into train, valid, and test sets by household_id
+    # This ensures no household appears in multiple datasets for better generalization
+
+    unique_households = transactions['household_id'].unique()
+    np.random.seed(42)  # For reproducibility
+    np.random.shuffle(unique_households)
+
+    # First split: 70% train, 30% temp (valid + test combined)
+    train_size = int(0.7 * len(unique_households))
+    train_households = unique_households[:train_size]
+
+    # Second split: Split the remaining 30% into 50% valid, 50% test
+    temp_households = unique_households[train_size:]
+    temp_size = len(temp_households)
+    valid_size = int(0.5 * temp_size)
+    valid_households = temp_households[:valid_size]
+    test_households = temp_households[valid_size:]
+
+    # Create transaction datasets based on household splits
+    transactions_train = transactions[transactions['household_id'].isin(train_households)].copy()
+    transactions_valid = transactions[transactions['household_id'].isin(valid_households)].copy()
+    transactions_test = transactions[transactions['household_id'].isin(test_households)].copy()
+
+    print(f"\nTransactions Split Summary:")
+    print(f"Total unique households: {len(unique_households)}")
+    print(f"Train households: {len(train_households)} ({100*len(train_households)/len(unique_households):.1f}%)")
+    print(f"Valid households: {len(valid_households)} ({100*len(valid_households)/len(unique_households):.1f}%)")
+    print(f"Test households: {len(test_households)} ({100*len(test_households)/len(unique_households):.1f}%)")
+    print(f"\nTransaction counts:")
+    print(f"Train transactions: {len(transactions_train)}")
+    print(f"Valid transactions: {len(transactions_valid)}")
+    print(f"Test transactions: {len(transactions_test)}")
+    
+    return transactions_train, transactions_valid, transactions_test
