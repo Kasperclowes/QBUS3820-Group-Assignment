@@ -237,7 +237,7 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
 
 
 #---------------------------------------------------------------------------------
-#GENERAL DATA CLEANING 
+#GENERAL DATA CLEANING (EDA)
 
 
 def clean_demographics(demographics): 
@@ -296,7 +296,10 @@ def clean_demographics(demographics):
 
 
 def clean_transactions(transactions):
+    #GENERAL DATA CLEANING
     transactions.info()
+    missing_counts = transactions.isnull().sum()
+    print("Missing values in transactions: ", missing_counts)
     continous_transactions = ["sales_value","retail_disc","coupon_disc","coupon_match_disc"]
     discrete_transactions = ["quantity"]
     nominal_categorical_transactions = ["household_id", "store_id", "basket_id", "product_id"]
@@ -311,8 +314,13 @@ def clean_transactions(transactions):
     print("Week number- Unique Values:")
     print(transactions['week'].unique())
 
+#-------------------------------------------------------------------------
+#FURTHER DATA CLEANING
 
-    # Split transactions data into train, valid, and test sets by household_id
+
+#-------------------------------------------------------------------------
+#SPLITTING TRANSACTION DATA BY HOUSHOLD ID
+
     # This ensures no household appears in multiple datasets for better generalization
 
     unique_households = transactions['household_id'].unique()
