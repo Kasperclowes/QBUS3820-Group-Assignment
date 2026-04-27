@@ -86,3 +86,5 @@ Raw product-level EDA is usually not helpful for churn directly.
 Category diversity (variety of products bought)
 Dependency on certain categories
 Drop in key category purchases
+
+
