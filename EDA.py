@@ -341,32 +341,9 @@ def clean_demographics(demographics):
     
 
 
-#-----------------------------------------------------------------------------------
-#If more data cleaning necessary do it here before splitting: 
-
-
-
-#---------------------------------------------------------------------------------  
-#Splitting demographics data into train/val/test sets 
-
-    demographics_train = demographics[demographics['household_id'].isin(train_households)].copy()
-    demographics_valid = demographics[demographics['household_id'].isin(valid_households)].copy()
-    demographics_test  = demographics[demographics['household_id'].isin(test_households)].copy()
-
-    #Returning cleaned demographics data split into train/val/test sets 
-    #ready for merging with transactions data and model training/validation/testing
-    return demographics_train, demographics_valid, demographics_test
-
-
-
-
-
-
-
-
-
 def clean_promotions(promotions): 
-
+#promotions doesnt include household ids, only product ids which could be traced back to 
+#a household id, although this dataset has low relevance to our assignment.
     promotions.info()
     missing_counts = promotions.isnull().sum()
     print("Missing values in promotions : ", missing_counts)
