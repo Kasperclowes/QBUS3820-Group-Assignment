@@ -154,6 +154,51 @@ def crosstabplots(X, y):
 
 from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.preprocessing import OrdinalEncoder
+
+def mutual_information_table(data, target, continuous=None, discrete=None, categorical=None, binary=None):
+    """
+    Compute mutual information between features and target variable.
+
+    Parameters:
+    - data: DataFrame with all features and target
+    - target: Target variable (Series or array)
+    - continuous: List of continuous feature names
+    - discrete: List of discrete feature names
+    - categorical: List of categorical feature names
+    - binary: List of binary feature names
+
+    Returns:
+    - DataFrame: MI scores for all features, sorted by importance
+    """
+    continuous = continuous or []
+    discrete = discrete or []
+    categorical = categorical or []
+    binary = binary or []
+
+    frames = []
+
+    if continuous:
+        mi = mutual_info_classif(data[continuous], target, random_state=1)
+        frames.append(pd.DataFrame(mi, index=continuous, columns=['MI']))
+
+    if discrete + categorical + binary:
+        features = OrdinalEncoder().fit_transform(data[discrete + categorical + binary])
+        mi = mutual_info_classif(features, target, discrete_features=True, random_state=1)
+        frames.append(pd.DataFrame(mi, index=discrete + categorical + binary, columns=['MI']))
+    
+    mi_results = pd.concat(frames).sort_values('MI', ascending=False)
+    plt.figure(figsize=(10, 5))
+    sns.barplot(x=mi_results['MI'], y=mi_results.index, palette='viridis')
+    plt.title('Mutual Information Scores for Features')
+    plt.xlabel('Mutual Information Score')
+    plt.ylabel('Feature')
+    plt.show()
+
+    return mi_results
+
+
 
 def rocplot(y_test, y_probs, labels, sample_weight=None):
     
@@ -346,10 +391,9 @@ def clean_demographics(demographics):
     missing_counts = demographics.isnull().sum()
     print(missing_counts)
     demographics = demographics.drop(['home_ownership', 'marital_status'], axis=1)
-    
     ordinal_categorical_demographics = ['age', 'income', 'household_size', 'kids_count']
     nominal_categorical_demographics = ['household_comp']
-    
+    categorical_demographics = ordinal_categorical_demographics + nominal_categorical_demographics
     duplicates= demographics.duplicated().sum()
     print(f"Number of duplicate rows: {duplicates}")
 
@@ -365,6 +409,10 @@ def clean_demographics(demographics):
     demographics_train = demographics[demographics['household_id'].isin(train_households)]
     demographics_valid = demographics[demographics['household_id'].isin(valid_households)]
     demographics_test  = demographics[demographics['household_id'].isin(test_households)]
+
+    demographics_train.set_index('household_id', inplace=True)
+    demographics_valid.set_index('household_id', inplace=True)
+    demographics_test.set_index('household_id', inplace=True)
 
     return demographics_train, demographics_valid, demographics_test
     
