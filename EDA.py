@@ -252,6 +252,23 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
 #---------------------------------------------------------------------------------
 #GENERAL DATA CLEANING (EDA)
 
+def household_split(transactions):
+    unique_households = transactions['household_id'].unique()
+    np.random.seed(42)  # For reproducibility
+    np.random.shuffle(unique_households)
+
+    # First split: 70% train, 30% temp (valid + test combined)
+    train_size = int(0.7 * len(unique_households))
+    train_households = unique_households[:train_size]
+
+    # Second split: Split the remaining 30% into 50% valid, 50% test
+    temp_households = unique_households[train_size:]
+    temp_size = len(temp_households)
+    valid_size = int(0.5 * temp_size)
+    valid_households = temp_households[:valid_size]
+    test_households = temp_households[valid_size:]
+    return train_households, valid_households, test_households
+
 def clean_transactions(transactions):
     #GENERAL DATA CLEANING
     transactions.info()
@@ -278,22 +295,8 @@ def clean_transactions(transactions):
 #-------------------------------------------------------------------------
 #SPLITTING TRANSACTION DATA BY HOUSHOLD ID
 
-    # This ensures no household appears in multiple datasets for better generalization
 
-    unique_households = transactions['household_id'].unique()
-    np.random.seed(42)  # For reproducibility
-    np.random.shuffle(unique_households)
-
-    # First split: 70% train, 30% temp (valid + test combined)
-    train_size = int(0.7 * len(unique_households))
-    train_households = unique_households[:train_size]
-
-    # Second split: Split the remaining 30% into 50% valid, 50% test
-    temp_households = unique_households[train_size:]
-    temp_size = len(temp_households)
-    valid_size = int(0.5 * temp_size)
-    valid_households = temp_households[:valid_size]
-    test_households = temp_households[valid_size:]
+    train_households, valid_households, test_households = household_split(transactions)
 
     # Create transaction datasets based on household splits
     transactions_train = transactions[transactions['household_id'].isin(train_households)].copy()
@@ -301,10 +304,6 @@ def clean_transactions(transactions):
     transactions_test = transactions[transactions['household_id'].isin(test_households)].copy()
 
     print(f"\nTransactions Split Summary:")
-    print(f"Total unique households: {len(unique_households)}")
-    print(f"Train households: {len(train_households)} ({100*len(train_households)/len(unique_households):.1f}%)")
-    print(f"Valid households: {len(valid_households)} ({100*len(valid_households)/len(unique_households):.1f}%)")
-    print(f"Test households: {len(test_households)} ({100*len(test_households)/len(unique_households):.1f}%)")
     print(f"\nTransaction counts:")
     print(f"Train transactions: {len(transactions_train)}")
     print(f"Valid transactions: {len(transactions_valid)}")
@@ -314,7 +313,7 @@ def clean_transactions(transactions):
 
 
 def clean_demographics(demographics):
-    transactions_train, transactions_valid, transactions_test = clean_transactions(transactions)
+    
     demographics.info()
     missing_counts = demographics.isnull().sum()
     print(missing_counts)
@@ -333,9 +332,11 @@ def clean_demographics(demographics):
 
     print("HOUSEHOLD_COMP - Unique Values:")
     print(demographics['household_comp'].unique())
-    demographics_train = demographics[demographics['household_id'].isin(transactions_train['household_id'])].copy()
-    demographics_valid = demographics[demographics['household_id'].isin(transactions_valid['household_id'])].copy()
-    demographics_test  = demographics[demographics['household_id'].isin(transactions_test['household_id'])].copy()
+
+    train_households, valid_households, test_households = household_split(transactions)
+    demographics_train = demographics[demographics['household_id'].isin(train_households)]
+    demographics_valid = demographics[demographics['household_id'].isin(valid_households)]
+    demographics_test  = demographics[demographics['household_id'].isin(test_households)]
 
     return demographics_train, demographics_valid, demographics_test
     
