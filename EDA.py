@@ -53,6 +53,19 @@ def plot_feature_vs_target(df, features, target):
     plt.tight_layout()
     plt.show()
 
+def plot_churn_rate(churn_train, colours):
+    
+    plt.figure(figsize=(6, 4))
+    sns.barplot(x=churn_train.value_counts().index, 
+                y=churn_train.value_counts(normalize=True) * 100,
+                palette=colours[:2])
+
+    plt.title("Customer Churn Rate", fontsize=14)
+    plt.ylabel("Percentage of Households (%)")
+    plt.xlabel("Churn (0 = Retained, 1 = Churned)")
+    plt.ylim(0, 100)
+    plt.show()
+
 def distplots(X, kde=True):
 
     labels = list(X.columns)

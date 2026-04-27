@@ -5,6 +5,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 # Plot settings
 import seaborn as sns
+import EDA as eda
 
 #---------------------------------------------------------------------------------
 #RETRIEVING DATA FROM COMPLETEJOURNEY_Py
@@ -56,4 +57,10 @@ def churn(transactions, threshold_days=21):
         last_purchase['days_since_last_purchase'] >= threshold_days
     ).astype(int)
 
-    return last_purchase.set_index('household_id')['churn']
+    transactions_train, transactions_valid, transactions_test = eda.clean_transactions(transactions)
+
+    churn = last_purchase.set_index('household_id')['churn']
+    churn_train = churn[transactions['household_id'].isin(transactions_train['household_id'])]
+    churn_valid = churn[transactions['household_id'].isin(transactions_valid['household_id'])]
+    churn_test  = churn[transactions['household_id'].isin(transactions_test['household_id'])]
+    return churn, churn_train, churn_valid, churn_test
