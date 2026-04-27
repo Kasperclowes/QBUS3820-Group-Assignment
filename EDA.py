@@ -336,22 +336,6 @@ def clean_demographics(demographics):
 #---------------------------------------------------------------------------------  
 #Splitting demographics data into train/val/test sets 
 
-    demographics_train = demographics[demographics['household_id'].isin(train_households)].copy()
-    demographics_valid = demographics[demographics['household_id'].isin(valid_households)].copy()
-    demographics_test  = demographics[demographics['household_id'].isin(test_households)].copy()
-
-    #Returning cleaned demographics data split into train/val/test sets 
-    #ready for merging with transactions data and model training/validation/testing
-    return demographics_train, demographics_valid, demographics_test
-
-
-
-
-
-
-
-
-
 def clean_promotions(promotions): 
 
     promotions.info()
