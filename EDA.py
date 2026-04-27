@@ -187,31 +187,18 @@ def mutual_information_table(data, target, continuous=None, discrete=None, categ
         features = OrdinalEncoder().fit_transform(data[discrete + categorical + binary])
         mi = mutual_info_classif(features, target, discrete_features=True, random_state=1)
         frames.append(pd.DataFrame(mi, index=discrete + categorical + binary, columns=['MI']))
+    
+    mi_results = pd.concat(frames).sort_values('MI', ascending=False)
+    plt.figure(figsize=(10, 5))
+    sns.barplot(x=mi_results['MI'], y=mi_results.index, palette='viridis')
+    plt.title('Mutual Information Scores for Features')
+    plt.xlabel('Mutual Information Score')
+    plt.ylabel('Feature')
+    plt.show()
 
-    return pd.concat(frames).sort_values('MI', ascending=False)
+    return mi_results
 
-#def mutual_information_table(data, continuous, discrete, categorical, binary, target):
-    """
-    Compute mutual information between features and target variable.
-    
-    Parameters:
-    - data: DataFrame with all features and target
-    - continuous: List of continuous feature names
-    - discrete: List of discrete feature names
-    - categorical: List of categorical feature names
-    - binary: List of binary feature names
-    - target: Target variable name (default: 'default')
-    
-    Returns:
-    - DataFrame: MI scores for all features, sorted by importance
-    """
-    
-    # Compute MI for continuous features
-    mi = mutual_info_classif(data[continuous], target, random_state=1)
-    mi_continuous = pd.DataFrame(mi, index=continuous, columns=['MI'])
-    
-    # Compute MI for discrete and categorical features
-    features = OrdinalEncoder().fit_transform(data[discrete + categorical + binary])
+
 
 def rocplot(y_test, y_probs, labels, sample_weight=None):
     
