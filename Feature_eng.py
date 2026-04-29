@@ -64,3 +64,18 @@ def churn(transactions, threshold_days=21):
     churn_test  = churn[churn.index.isin(test_households)]
 
     return churn, churn_train, churn_valid, churn_test
+
+def collapse_income_categories(demographics_train, demographics_valid, demographics_test):
+    income_collapse = {
+        '100-124K': '100K+',
+        '125-149K': '100K+',
+        '150-174K': '100K+',
+        '175-199K': '100K+',
+        '200-249K': '100K+',
+        '250K+':    '100K+',
+    }
+    demographics_train['income'] = demographics_train['income'].replace(income_collapse)
+    demographics_valid['income'] = demographics_valid['income'].replace(income_collapse)
+    demographics_test['income']  = demographics_test['income'].replace(income_collapse)
+
+    return demographics_train['income'], demographics_valid['income'], demographics_test['income']  

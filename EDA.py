@@ -123,25 +123,77 @@ def regplots(X, y):
 
     return fig, axes
 
-def crosstabplots(X, y):
-    colors = sns.color_palette() 
+def churn_stack_plot(X, y, features=None, column_orders=None):
+    if features is None:
+        features = list(X.columns)
+    column_orders = column_orders or {}
+
+    cols = min(3, len(features))
+    rows = int(np.ceil(len(features) / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows))
+    axes = np.array(axes).flatten()
+
+    for i, feature in enumerate(features):
+        ax = axes[i]
+        table = pd.crosstab(X[feature], y)
+        if feature in column_orders:
+            table = table.reindex(column_orders[feature])
+        else:
+            table = table.sort_index()
+        table.columns = ['Retained', 'Churned']
+        table.plot(kind='bar', stacked=True, ax=ax,
+                   color=[colors[0], colors[2]], alpha=0.85, edgecolor='white')
+        ax.set_title(feature)
+        ax.set_xlabel('')
+        ax.set_ylabel('N households')
+        ax.tick_params(axis='x', rotation=45)
+        ax.legend(fontsize=8)
+
+    for j in range(len(features), len(axes)):
+        fig.delaxes(axes[j])
+
+    sns.despine()
+    plt.tight_layout()
+    return fig, axes
+
+
+def merge_rare_categories(feature_train, feature_valid, feature_test, threshold):
+    # Count occurrences of each category
+    counts = feature_train.value_counts()
+
+    # Replace rare categories with "Other"
+    feature_train = feature_train.apply(
+        lambda x: x if counts[x] >= threshold else 'Other'
+    )
+    feature_valid = feature_valid.apply(
+        lambda x: x if x in feature_train.unique() else 'Other'
+    )
+    feature_test = feature_test.apply(
+        lambda x: x if x in feature_train.unique() else 'Other'
+    )
+    return feature_train, feature_valid, feature_test
+
+def crosstabplots(X, y, column_orders=None):
+    colors = sns.color_palette()
+    column_orders = column_orders or {}
 
     labels = list(X.columns)
-    
     N, p = X.shape
-
-    rows = int(np.ceil(p/3)) 
+    rows = int(np.ceil(p/3))
 
     fig, axes = plt.subplots(rows, 3, figsize=(12, rows*(12/4)))
 
     for i, ax in enumerate(fig.axes):
         if i < p:
-            
-            table=pd.crosstab(y, X.iloc[:,i])
+            col_name = labels[i]
+            table = pd.crosstab(y, X.iloc[:,i])
             table = (table/table.sum()).iloc[1,:]
-            (table.T).sort_index().plot(kind='bar', alpha=0.8, ax=ax, color=colors[i % len(colors)])
-            
-            ax.set_title(labels[i])
+            if col_name in column_orders:
+                table = table.reindex(column_orders[col_name])
+            else:
+                table = table.sort_index()
+            table.T.plot(kind='bar', alpha=0.8, ax=ax, color=colors[i % len(colors)])
+            ax.set_title(col_name)
             ax.set_ylabel('')
             ax.set_xlabel('')
         else:
@@ -149,7 +201,6 @@ def crosstabplots(X, y):
 
     sns.despine()
     plt.tight_layout()
-    
     return fig, axes
 
 from sklearn.metrics import roc_curve
