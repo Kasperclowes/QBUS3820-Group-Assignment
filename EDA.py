@@ -10,6 +10,8 @@ import seaborn as sns
 #RETRIEVING DATA FROM COMPLETEJOURNEY_Py
 import os
 
+from xgboost import train
+
 # Load data directly from parquet files
 data_dir = 'completejourney_py/completejourney_py/data'
 transactions = pd.read_parquet(os.path.join(data_dir, 'transactions.parquet'))
@@ -123,6 +125,32 @@ def regplots(X, y):
 
     return fig, axes
 
+def boxplots(X, y):
+    sns.set_palette(colors) # set custom color scheme
+
+    labels = list(X.columns)
+    
+    N, p = X.shape
+
+    rows = int(np.ceil(p/3)) 
+
+    fig, axes = plt.subplots(rows, 3, figsize=(12, rows*(11/4)))
+
+    for i, ax in enumerate(fig.axes):
+        if i < p:          
+            sns.boxplot(x=y, y=X.iloc[:,i], ax=ax)
+            ax.set_xlabel(f'')
+            ax.set_ylabel(f'')
+            ax.set_yticks([])
+            ax.set_title(labels[i])
+        else:
+            fig.delaxes(ax)
+
+    sns.despine()
+    plt.tight_layout()
+
+    return fig, axes
+
 def churn_stack_plot(X, y, features=None, column_orders=None):
     if features is None:
         features = list(X.columns)
@@ -156,6 +184,13 @@ def churn_stack_plot(X, y, features=None, column_orders=None):
     plt.tight_layout()
     return fig, axes
 
+def scatterplot(selected_features, train, y_train, string_target):
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    for i, feature in enumerate(selected_features):
+        sns.regplot(x=train[feature], y=y_train, lowess=True, line_kws={'color':'black', 'alpha':0.6}, ax=axes[i])
+        axes[i].set_title(f'{feature} vs. {string_target}')
+    plt.tight_layout()
+    plt.show()
 
 def merge_rare_categories(feature_train, feature_valid, feature_test, threshold):
     # Count occurrences of each category
