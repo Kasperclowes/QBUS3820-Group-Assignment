@@ -46,6 +46,14 @@ Someone might spend less just because they visit less:
 ↓ frequency + ↓ spend → strong churn signal
 ↓ frequency + same AOV → weaker churn signal
 
+- visit decline rate: 
+
+Visit Decline Rate= (Past visits−Recent visits)/ past visits 
+	​
+        High decline → strong churn risk
+        Near 0 → stable
+        Negative → growing engagement
+
 
 
 
