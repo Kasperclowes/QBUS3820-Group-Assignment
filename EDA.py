@@ -523,3 +523,46 @@ def clean_promotions(promotions):
         print("Week number- Unique Values:")
         print(transactions['week'].unique())
 
+def compare_customer_features_by_churn(log_customer_features, churn_train):
+    from scipy import stats
+
+    # Create a summary dataframe with key metrics for each feature by churn group
+    metrics_by_churn = []
+
+    for feature in log_customer_features.columns:
+        churn_0 = log_customer_features.loc[churn_train == 0, feature]
+        churn_1 = log_customer_features.loc[churn_train == 1, feature]
+        
+        # Descriptive statistics
+        metrics_by_churn.append({
+            'Feature': feature,
+            'Churn_0_Mean': churn_0.mean(),
+            'Churn_1_Mean': churn_1.mean(),
+            'Mean_Difference': churn_1.mean() - churn_0.mean(),
+            'Churn_0_Median': churn_0.median(),
+            'Churn_1_Median': churn_1.median(),
+            'Churn_0_Std': churn_0.std(),
+            'Churn_1_Std': churn_1.std(),
+            'Churn_0_IQR': churn_0.quantile(0.75) - churn_0.quantile(0.25),
+            'Churn_1_IQR': churn_1.quantile(0.75) - churn_1.quantile(0.25),
+            # Statistical tests
+            'T_Statistic': stats.ttest_ind(churn_0, churn_1)[0],
+            'T_PValue': stats.ttest_ind(churn_0, churn_1)[1]
+        })
+
+    metrics_df = pd.DataFrame(metrics_by_churn)
+    metrics_df = metrics_df.round(4)
+
+    # Convert from log scale back to original scale
+    metrics_df['Churn_0_Original'] = np.expm1(metrics_df['Churn_0_Mean'])
+    metrics_df['Churn_1_Original'] = np.expm1(metrics_df['Churn_1_Mean'])
+    metrics_df['Percent_Difference'] = ((metrics_df['Churn_1_Original'] - metrics_df['Churn_0_Original']) / metrics_df['Churn_0_Original']) * 100
+
+    # Display results
+    print("COMPARISON OF CUSTOMER FEATURES BY CHURN STATUS (Original Scale)\n")
+    print(metrics_df[['Feature', 'Churn_0_Original', 'Churn_1_Original', 'Percent_Difference', 'T_PValue']].to_string())
+
+    # Show which features have significant differences (p < 0.05)
+    print("\n\nStatistically Significant Differences (p < 0.05):")
+    significant = metrics_df[metrics_df['T_PValue'] < 0.05][['Feature', 'Percent_Difference', 'T_PValue']]
+    print(significant.to_string())
