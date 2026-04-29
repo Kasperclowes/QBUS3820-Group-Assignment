@@ -370,6 +370,7 @@ def clean_transactions(transactions):
     transactions.info()
     missing_counts = transactions.isnull().sum()
     print("Missing values in transactions: ", missing_counts)
+    #retail disc, coupon disc and coupon match disc have alot of zero values
     continous_transactions = ["sales_value","retail_disc","coupon_disc","coupon_match_disc"]
     discrete_transactions = ["quantity"]
     nominal_categorical_transactions = ["household_id", "store_id", "basket_id", "product_id"]
@@ -386,7 +387,6 @@ def clean_transactions(transactions):
 
 #-------------------------------------------------------------------------
 #FURTHER DATA CLEANING
-
 
 #-------------------------------------------------------------------------
 #SPLITTING TRANSACTION DATA BY HOUSHOLD ID
@@ -406,6 +406,34 @@ def clean_transactions(transactions):
     print(f"Test transactions: {len(transactions_test)}")
     
     return transactions_train, transactions_valid, transactions_test
+
+def plot_transactions(transactions): 
+    continous_transactions = ["sales_value","retail_disc","coupon_disc","coupon_match_disc"]
+    discrete_transactions = ["quantity"]
+    nominal_categorical_transactions = ["household_id", "store_id", "basket_id", "product_id"]
+    ordinal_categorical_transactions = ["week"]
+    duplicates= transactions.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    #CONTINOUS VARIABLES: 
+    print(transactions["sales_value"].max())
+    # Print count of zero values in continuous columns
+    print("\n" + "="*60)
+    print("Zero Values Count in Continuous Columns:")
+    print("="*60)
+    for col in continous_transactions:
+        zero_count = (transactions[col] == 0).sum()
+        print(f"{col}: {zero_count} zero values")
+    
+    # Remove rows with zero values in continuous columns
+    initial_rows = len(transactions)
+    transactions = transactions[(transactions[continous_transactions] != 0).all(axis=1)]
+    rows_removed = initial_rows - len(transactions)
+    print(f"\nRows removed with zero values: {rows_removed}")
+    print(f"Remaining transactions: {len(transactions)}")
+
+    print(distplots(transactions[continous_transactions]))
+
 
 
 def clean_demographics(demographics):
