@@ -79,3 +79,18 @@ def collapse_income_categories(demographics_train, demographics_valid, demograph
     demographics_test['income']  = demographics_test['income'].replace(income_collapse)
 
     return demographics_train['income'], demographics_valid['income'], demographics_test['income']  
+
+def total_spend(transactions):
+    total_spend = transactions.groupby('household_id')['sales_value'].sum()
+    return total_spend
+
+def transaction_frequency(transactions):
+    transaction_freq = transactions.groupby('household_id').size()
+    return transaction_freq
+
+def average_basket_size(transactions):
+    basket_size = (transactions.groupby(['household_id', 'basket_id'])['sales_value']
+               .sum()
+               .groupby('household_id')
+               .mean())
+    return basket_size
