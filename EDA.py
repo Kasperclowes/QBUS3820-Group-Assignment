@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 # Plot settings
@@ -522,3 +523,4 @@ def clean_promotions(promotions):
 
         print("Week number- Unique Values:")
         print(transactions['week'].unique())
+
