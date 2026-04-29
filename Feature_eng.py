@@ -94,3 +94,26 @@ def average_basket_size(transactions):
                .groupby('household_id')
                .mean())
     return basket_size
+
+
+def spend_trend(transactions):
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    #we want spend trend for each houshold id to be spend trend = recent spend (last 3 weeks)- past spend (previous 4-8 weeks)/ past spend (previous 4-8 weeks)
+    transactions['week'] = transactions['transaction_datetime'].dt.isocalendar().week
+    transactions['year'] = transactions['transaction_datetime'].dt.year
+    # Define recent and past periods
+    recent_period = transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=3))
+    past_period = (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=3))) 
+    past_period &= (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8)))
+    # Calculate spend in recent and past periods
+    recent_spend = transactions[recent_period].groupby('household_id')['sales_value'].sum()
+    past_spend = transactions[past_period].groupby('household_id')['sales_value'].sum()
+    # Calculate spend trend
+    spend_trend = (recent_spend - past_spend) / past_spend.replace(0, np.nan)  # Avoid division by zero
+    spend_trend = spend_trend.fillna(0)  # Replace NaN with 0 (no change if past spend is zero)
+    spend_trend = spend_trend.to_frame()
+    spend_trend.columns = ['spend_trend']
+    return spend_trend
+
+#spend trend is a measure of how much a household's spending has changed recently compared to the past. 
+#A positive trend indicates increased spending, while a negative trend indicates decreased spending.
