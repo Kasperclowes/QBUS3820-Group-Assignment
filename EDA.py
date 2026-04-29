@@ -259,18 +259,19 @@ def mutual_information_table(data, target, continuous=None, discrete=None, categ
     Returns:
     - DataFrame: MI scores for all features, sorted by importance
     """
-    continuous = continuous or []
-    discrete = discrete or []
-    categorical = categorical or []
-    binary = binary or []
+    # Convert pandas Index to list if necessary
+    continuous = list(continuous) if continuous is not None else []
+    discrete = list(discrete) if discrete is not None else []
+    categorical = list(categorical) if categorical is not None else []
+    binary = list(binary) if binary is not None else []
 
     frames = []
 
-    if continuous:
+    if len(continuous) > 0:
         mi = mutual_info_classif(data[continuous], target, random_state=1)
         frames.append(pd.DataFrame(mi, index=continuous, columns=['MI']))
 
-    if discrete + categorical + binary:
+    if len(discrete + categorical + binary) > 0:
         features = OrdinalEncoder().fit_transform(data[discrete + categorical + binary])
         mi = mutual_info_classif(features, target, discrete_features=True, random_state=1)
         frames.append(pd.DataFrame(mi, index=discrete + categorical + binary, columns=['MI']))

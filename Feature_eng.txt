@@ -32,7 +32,7 @@ In transactions df:
         Average order value (AOV) (total spend/number of transactions) and weekly/monthly spend week/month to get an idea on 
         how much the specific household id is usually spending, a high or low spending household. 
         2. Option A Spend trends: For each household id compute spend trends. Define a recent to past spend behaviour (ex total spend previous 4 weeks vs past 5-8 weeks)
-        Spend Trend= (Past Spend- Recent Spend)/Past Spend. 
+        Spend Trend= (Recent Spend - Past spend)/Past Spend. 
         Negative → spending is dropping (churn risk)
         Positive → increasing engagement
         3. Option B Moving average trend: (for example per 4 weeks average) 
@@ -48,11 +48,11 @@ Someone might spend less just because they visit less:
 
 - visit decline rate: 
 
-Visit Decline Rate= (Past visits−Recent visits)/ past visits 
+Visit Rate= (Recent visits-past visits)/ past visits 
 	​
-        High decline → strong churn risk
+        Negative visit rate- High decline → strong churn risk
         Near 0 → stable
-        Negative → growing engagement
+        Positive visit rate → growing engagement
 
 
 
