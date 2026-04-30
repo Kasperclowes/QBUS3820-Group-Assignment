@@ -585,6 +585,101 @@ def clean_products(products):
     products['product_category'] = products['product_category'].fillna(products['department']).fillna('Unknown')
     products['product_type'] = products['product_type'].fillna(products['department']).fillna('Unknown')
 
+def department_diversity_hist_and_box(dept_div_df):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    sns.histplot(dept_div_df['dept_diversity'], bins=20, ax=axes[0])
+    axes[0].set_title('Distribution of Department Diversity')
+    axes[0].set_xlabel('Unique Departments Visited')
+    axes[0].set_ylabel('Number of Households')
+
+    sns.boxplot(data=dept_div_df, x='churn', y='dept_diversity', ax=axes[1])
+    axes[1].set_title('Department Diversity by Churn Status')
+    axes[1].set_xlabel('Churn')
+    axes[1].set_xticklabels(['Retained', 'Churned'])
+    axes[1].set_ylabel('Unique Departments Visited')
+
+    plt.tight_layout()
+    plt.show()
+
+    print(dept_div_df.groupby('churn')['dept_diversity'].describe().round(2))
+
+def plot_products_eda(products, rare_threshold=100):
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # Department bar chart
+    dept_counts = products['department'].value_counts()
+    sns.barplot(x=dept_counts.values, y=dept_counts.index, ax=axes[0], orient='h')
+    axes[0].set_title('Product Counts by Department')
+    axes[0].set_xlabel('Count')
+    axes[0].set_ylabel('')
+
+    # National vs Private brand
+    brand_counts = products['brand'].value_counts()
+    sns.barplot(x=brand_counts.index, y=brand_counts.values, ax=axes[1])
+    axes[1].set_title('National vs Private Label Products')
+    axes[1].set_xlabel('Brand')
+    axes[1].set_ylabel('Count')
+    for bar, val in zip(axes[1].patches, brand_counts.values):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 50,
+                     f'{val:,}', ha='center', va='bottom', fontsize=10)
+
+    # Product category — top 20, flag rare categories
+    cat_counts = products['product_category'].value_counts()
+    rare = (cat_counts < rare_threshold).sum()
+    top_cats = cat_counts.head(20)
+    sns.barplot(x=top_cats.values, y=top_cats.index, ax=axes[2], orient='h')
+    axes[2].set_title(f'Top 20 Product Categories\n({rare} categories with < {rare_threshold} products)')
+    axes[2].set_xlabel('Count')
+    axes[2].set_ylabel('')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(f"\nTotal categories: {cat_counts.shape[0]}")
+    print(f"Rare categories (< {rare_threshold} products): {rare} ({rare/cat_counts.shape[0]*100:.1f}%)")
+    print(f"\nRare categories:\n{cat_counts[cat_counts < rare_threshold].sort_values()}")
+
+def plot_spend_by_product_attribute(transactions_train, products):
+    df = transactions_train.merge(products[['product_id', 'department', 'brand', 'product_category']], 
+                            on='product_id', how='left')
+
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # Total sales_value per department (top 15)
+    dept_spend = df.groupby('department')['sales_value'].sum().sort_values(ascending=False).head(15)
+    sns.barplot(x=dept_spend.values, y=dept_spend.index, ax=axes[0], orient='h')
+    axes[0].set_title('Total Spend by Department (Top 15)')
+    axes[0].set_xlabel('Total Sales Value ($)')
+    axes[0].set_ylabel('')
+
+    # Share of spend: Private vs National
+    brand_spend = df.groupby('brand')['sales_value'].sum()
+    brand_share = brand_spend / brand_spend.sum() * 100
+    sns.barplot(x=brand_share.index, y=brand_share.values, ax=axes[1])
+    axes[1].set_title('Share of Spend: National vs Private Label')
+    axes[1].set_xlabel('Brand')
+    axes[1].set_ylabel('Share of Total Spend (%)')
+    for bar, val in zip(axes[1].patches, brand_share.values):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+                     f'{val:.1f}%', ha='center', va='bottom', fontsize=11)
+
+    # Basket diversity: unique product_categories per household
+    basket_diversity = df.groupby('household_id')['product_category'].nunique()
+    sns.histplot(basket_diversity, bins=30, ax=axes[2], kde=True)
+    axes[2].set_title('Basket Diversity\n(Unique Product Categories per Household)')
+    axes[2].set_xlabel('Number of Unique Categories')
+    axes[2].set_ylabel('Number of Households')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(f"Median basket diversity: {basket_diversity.median():.0f} unique categories")
+    print(f"Mean basket diversity:   {basket_diversity.mean():.1f} unique categories")
+
+
 def compare_customer_features_by_churn(log_customer_features, churn_train):
     from scipy import stats
 
