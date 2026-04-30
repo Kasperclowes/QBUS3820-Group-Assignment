@@ -95,6 +95,11 @@ def average_basket_size(transactions):
                .mean())
     return basket_size
 
+def department_diversity(transactions, products):
+    transactions = transactions.merge(products[['product_id', 'department']], on='product_id', how='left')
+    department_diversity = transactions.groupby('household_id')['department'].nunique()
+    return department_diversity
+
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])

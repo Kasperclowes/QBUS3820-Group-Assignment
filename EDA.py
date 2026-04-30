@@ -152,6 +152,32 @@ def boxplots(X, y):
 
     return fig, axes
 
+def histplot(X, y):
+    sns.set_palette(colors) # set custom color scheme
+
+    labels = list(X.columns)
+    
+    N, p = X.shape
+
+    rows = int(np.ceil(p/3)) 
+
+    fig, axes = plt.subplots(rows, 3, figsize=(12, rows*(11/4)))
+
+    for i, ax in enumerate(fig.axes):
+        if i < p:          
+            sns.histplot(x=X.iloc[:,i], hue=y, ax=ax, stat='density', kde=True, alpha=0.6)
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            ax.set_yticks([])
+            ax.set_title(labels[i])
+        else:
+            fig.delaxes(ax)
+
+    sns.despine()
+    plt.tight_layout()
+
+    return fig, axes
+
 def churn_stack_plot(X, y, features=None, column_orders=None):
     if features is None:
         features = list(X.columns)
@@ -523,6 +549,41 @@ def clean_promotions(promotions):
 
         print("Week number- Unique Values:")
         print(transactions['week'].unique())
+
+def clean_products(products):
+    products.info()
+    missing_counts = products.isnull().sum()
+    print("Missing values in products: ", missing_counts)
+    nominal_categorical_products = ["product_id", "manufacturer_id", "department", 'brand', 'product_category', 'product_type']
+    ordinal_categorical_products = ['package_size']
+    duplicates= products.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    both_missing = products[['product_category', 'product_type']].isnull()
+    print("\nMissingness overlap (product_category vs product_type):")
+    print(pd.crosstab(both_missing['product_category'], both_missing['product_type'],
+                      rownames=['cat missing'], colnames=['type missing']))
+
+    # Is package_size missingness concentrated in certain departments?
+    print("\npackage_size missing rate by department:")
+    print(products.groupby('department')['package_size']
+          .apply(lambda x: x.isnull().mean())
+          .sort_values(ascending=False)
+          .round(2))
+
+    # Is product_category/type missingness tied to department or brand?
+    print("\nproduct_category missing rate by department:")
+    print(products.groupby('department')['product_category']
+          .apply(lambda x: x.isnull().mean())
+          .sort_values(ascending=False)
+          .round(2))
+
+    # Sample rows with missing values to inspect manually
+    print("\nSample rows missing product_category:")
+    print(products[products['product_category'].isnull()].head(10))
+
+    products['product_category'] = products['product_category'].fillna(products['department']).fillna('Unknown')
+    products['product_type'] = products['product_type'].fillna(products['department']).fillna('Unknown')
 
 def compare_customer_features_by_churn(log_customer_features, churn_train):
     from scipy import stats
