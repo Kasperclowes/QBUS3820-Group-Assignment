@@ -679,6 +679,69 @@ def plot_spend_by_product_attribute(transactions_train, products):
     print(f"Median basket diversity: {basket_diversity.median():.0f} unique categories")
     print(f"Mean basket diversity:   {basket_diversity.mean():.1f} unique categories")
 
+def plot_churn_product_features(transactions_train, products, churn_train):
+    df = transactions_train.merge(
+        products[['product_id', 'brand', 'department', 'product_category']],
+        on='product_id', how='left'
+    )
+
+    # Household-level aggregates
+    total_spend = df.groupby('household_id')['sales_value'].sum()
+    private_spend = df[df['brand'] == 'Private'].groupby('household_id')['sales_value'].sum()
+    private_share = (private_spend / total_spend).fillna(0).rename('private_label_share')
+
+    n_departments = df.groupby('household_id')['department'].nunique().rename('n_departments')
+
+    dominant_category = df.groupby('household_id')['product_category'].agg(
+        lambda x: x.value_counts().index[0]
+    ).rename('dominant_category')
+
+    df['total_discount'] = df['retail_disc'].abs() + df['coupon_disc'].abs() + df['coupon_match_disc'].abs()
+    n_baskets = df.groupby('household_id')['basket_id'].nunique()
+    avg_discount = (df.groupby('household_id')['total_discount'].sum() / n_baskets).rename('avg_discount_per_trip')
+
+    # Join with churn labels
+    hh = pd.concat([private_share, n_departments, dominant_category, avg_discount], axis=1)
+    hh = hh.join(churn_train.rename('churn')).dropna(subset=['churn'])
+    hh['churn_label'] = hh['churn'].map({0: 'Retained', 1: 'Churned'})
+
+    fig, axes = plt.subplots(1, 3, figsize=(22, 6))
+
+    # Number of departments shopped
+    sns.boxplot(data=hh, x='churn_label', y='n_departments', ax=axes[0])
+    axes[0].set_title('Departments Shopped')
+    axes[0].set_xlabel('')
+    axes[0].set_ylabel('Unique Departments')
+
+    # Dominant product category — top 10, grouped bar
+    top_cats = hh['dominant_category'].value_counts().head(10).index
+    cat_table = (
+        hh[hh['dominant_category'].isin(top_cats)]
+        .groupby(['dominant_category', 'churn_label'])
+        .size()
+        .unstack(fill_value=0)
+        .loc[top_cats]
+    )
+    cat_table.plot(kind='bar', ax=axes[1], edgecolor='white', alpha=0.85)
+    axes[1].set_title('Dominant Product Category (Top 10)')
+    axes[1].set_xlabel('')
+    axes[1].set_ylabel('Number of Households')
+    axes[1].tick_params(axis='x', rotation=45)
+    axes[1].legend(fontsize=9)
+
+    # Avg discount per trip
+    sns.boxplot(data=hh, x='churn_label', y='avg_discount_per_trip', ax=axes[2])
+    axes[2].set_title('Avg Discount per Trip')
+    axes[2].set_xlabel('')
+    axes[2].set_ylabel('Avg Discount ($)')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(hh.groupby('churn_label')[[ 'n_departments', 'avg_discount_per_trip']]
+          .median().round(3))
+
 
 def compare_customer_features_by_churn(log_customer_features, churn_train):
     from scipy import stats
