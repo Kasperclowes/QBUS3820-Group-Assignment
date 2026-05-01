@@ -585,6 +585,60 @@ def clean_products(products):
     products['product_category'] = products['product_category'].fillna(products['department']).fillna('Unknown')
     products['product_type'] = products['product_type'].fillna(products['department']).fillna('Unknown')
 
+def clean_campaigns(campaigns):
+    campaigns.info()
+    missing_counts = campaigns.isnull().sum()
+    print("Missing values in campaigns: ", missing_counts)
+    duplicates= campaigns.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    train_households, valid_households, test_households = household_split(transactions)
+    campaigns_train = campaigns[campaigns['household_id'].isin(train_households)]
+    campaigns_valid = campaigns[campaigns['household_id'].isin(valid_households)]
+    campaigns_test  = campaigns[campaigns['household_id'].isin(test_households)]
+    return campaigns_train, campaigns_valid, campaigns_test
+
+def plot_campaign_churn(campaigns_train, churn_train):
+    # Campaign count per household (0 for unexposed)
+    campaign_counts = (campaigns_train.groupby('household_id')['campaign_id']
+                       .count().reindex(churn_train.index, fill_value=0).rename('campaign_count'))
+
+    df = pd.DataFrame({'campaign_count': campaign_counts, 'churn': churn_train})
+    df['churn_label'] = df['churn'].map({0: 'Retained', 1: 'Churned'})
+    df['exposed'] = (df['campaign_count'] > 0).map({True: 'Exposed', False: 'Not Exposed'})
+
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # 1. Campaign count by churn label
+    sns.boxplot(data=df, x='churn_label', y='campaign_count', ax=axes[0])
+    axes[0].set_title('Campaign Exposure by Churn Status')
+    axes[0].set_xlabel('')
+    axes[0].set_ylabel('Number of Campaigns')
+      # 2. Churn rate per campaign_id
+    campaign_churn = campaigns.merge(churn_train.rename('churn'), left_on='household_id', right_index=True, how='left')
+    churn_per_campaign = campaign_churn.groupby('campaign_id')['churn'].mean().sort_values(ascending=False)
+    sns.barplot(x=churn_per_campaign.index.astype(str), y=churn_per_campaign.values, ax=axes[1])
+    axes[1].set_title('Churn Rate per Campaign')
+    axes[1].set_xlabel('Campaign ID')
+    axes[1].set_ylabel('Churn Rate')
+    axes[1].tick_params(axis='x', rotation=45)
+
+    # 3. Exposed vs not exposed churn rate
+    exposed_churn = df.groupby('exposed')['churn'].mean()
+    sns.barplot(x=exposed_churn.index, y=exposed_churn.values, ax=axes[2])
+    axes[2].set_title('Churn Rate: Exposed vs Not Exposed')
+    axes[2].set_xlabel('')
+    axes[2].set_ylabel('Churn Rate')
+    for bar, val in zip(axes[2].patches, exposed_churn.values):
+        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+                     f'{val:.1%}', ha='center', va='bottom', fontsize=11)
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(df.groupby('churn_label')['campaign_count'].describe().round(2))
+
 def department_diversity_hist_and_box(dept_div_df):
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
