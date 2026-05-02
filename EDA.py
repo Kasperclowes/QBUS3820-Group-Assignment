@@ -152,6 +152,32 @@ def boxplots(X, y):
 
     return fig, axes
 
+def histplot(X, y):
+    sns.set_palette(colors) # set custom color scheme
+
+    labels = list(X.columns)
+    
+    N, p = X.shape
+
+    rows = int(np.ceil(p/3)) 
+
+    fig, axes = plt.subplots(rows, 3, figsize=(12, rows*(11/4)))
+
+    for i, ax in enumerate(fig.axes):
+        if i < p:          
+            sns.histplot(x=X.iloc[:,i], hue=y, ax=ax, stat='density', kde=True, alpha=0.6)
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            ax.set_yticks([])
+            ax.set_title(labels[i])
+        else:
+            fig.delaxes(ax)
+
+    sns.despine()
+    plt.tight_layout()
+
+    return fig, axes
+
 def churn_stack_plot(X, y, features=None, column_orders=None):
     if features is None:
         features = list(X.columns)
@@ -523,6 +549,255 @@ def clean_promotions(promotions):
 
         print("Week number- Unique Values:")
         print(transactions['week'].unique())
+
+def clean_products(products):
+    products.info()
+    missing_counts = products.isnull().sum()
+    print("Missing values in products: ", missing_counts)
+    nominal_categorical_products = ["product_id", "manufacturer_id", "department", 'brand', 'product_category', 'product_type']
+    ordinal_categorical_products = ['package_size']
+    duplicates= products.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    both_missing = products[['product_category', 'product_type']].isnull()
+    print("\nMissingness overlap (product_category vs product_type):")
+    print(pd.crosstab(both_missing['product_category'], both_missing['product_type'],
+                      rownames=['cat missing'], colnames=['type missing']))
+
+    # Is package_size missingness concentrated in certain departments?
+    print("\npackage_size missing rate by department:")
+    print(products.groupby('department')['package_size']
+          .apply(lambda x: x.isnull().mean())
+          .sort_values(ascending=False)
+          .round(2))
+
+    # Is product_category/type missingness tied to department or brand?
+    print("\nproduct_category missing rate by department:")
+    print(products.groupby('department')['product_category']
+          .apply(lambda x: x.isnull().mean())
+          .sort_values(ascending=False)
+          .round(2))
+
+    # Sample rows with missing values to inspect manually
+    print("\nSample rows missing product_category:")
+    print(products[products['product_category'].isnull()].head(10))
+
+    products['product_category'] = products['product_category'].fillna(products['department']).fillna('Unknown')
+    products['product_type'] = products['product_type'].fillna(products['department']).fillna('Unknown')
+
+def clean_campaigns(campaigns):
+    campaigns.info()
+    missing_counts = campaigns.isnull().sum()
+    print("Missing values in campaigns: ", missing_counts)
+    duplicates= campaigns.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+    train_households, valid_households, test_households = household_split(transactions)
+    campaigns_train = campaigns[campaigns['household_id'].isin(train_households)]
+    campaigns_valid = campaigns[campaigns['household_id'].isin(valid_households)]
+    campaigns_test  = campaigns[campaigns['household_id'].isin(test_households)]
+    return campaigns_train, campaigns_valid, campaigns_test
+
+def plot_campaign_churn(campaigns_train, churn_train):
+    # Campaign count per household (0 for unexposed)
+    campaign_counts = (campaigns_train.groupby('household_id')['campaign_id']
+                       .count().reindex(churn_train.index, fill_value=0).rename('campaign_count'))
+
+    df = pd.DataFrame({'campaign_count': campaign_counts, 'churn': churn_train})
+    df['churn_label'] = df['churn'].map({0: 'Retained', 1: 'Churned'})
+    df['exposed'] = (df['campaign_count'] > 0).map({True: 'Exposed', False: 'Not Exposed'})
+
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # 1. Campaign count by churn label
+    sns.boxplot(data=df, x='churn_label', y='campaign_count', ax=axes[0])
+    axes[0].set_title('Campaign Exposure by Churn Status')
+    axes[0].set_xlabel('')
+    axes[0].set_ylabel('Number of Campaigns')
+      # 2. Churn rate per campaign_id
+    campaign_churn = campaigns.merge(churn_train.rename('churn'), left_on='household_id', right_index=True, how='left')
+    churn_per_campaign = campaign_churn.groupby('campaign_id')['churn'].mean().sort_values(ascending=False)
+    sns.barplot(x=churn_per_campaign.index.astype(str), y=churn_per_campaign.values, ax=axes[1])
+    axes[1].set_title('Churn Rate per Campaign')
+    axes[1].set_xlabel('Campaign ID')
+    axes[1].set_ylabel('Churn Rate')
+    axes[1].tick_params(axis='x', rotation=45)
+
+    # 3. Exposed vs not exposed churn rate
+    exposed_churn = df.groupby('exposed')['churn'].mean()
+    sns.barplot(x=exposed_churn.index, y=exposed_churn.values, ax=axes[2])
+    axes[2].set_title('Churn Rate: Exposed vs Not Exposed')
+    axes[2].set_xlabel('')
+    axes[2].set_ylabel('Churn Rate')
+    for bar, val in zip(axes[2].patches, exposed_churn.values):
+        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+                     f'{val:.1%}', ha='center', va='bottom', fontsize=11)
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(df.groupby('churn_label')['campaign_count'].describe().round(2))
+
+def department_diversity_hist_and_box(dept_div_df):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    sns.histplot(dept_div_df['dept_diversity'], bins=20, ax=axes[0])
+    axes[0].set_title('Distribution of Department Diversity')
+    axes[0].set_xlabel('Unique Departments Visited')
+    axes[0].set_ylabel('Number of Households')
+
+    sns.boxplot(data=dept_div_df, x='churn', y='dept_diversity', ax=axes[1])
+    axes[1].set_title('Department Diversity by Churn Status')
+    axes[1].set_xlabel('Churn')
+    axes[1].set_xticklabels(['Retained', 'Churned'])
+    axes[1].set_ylabel('Unique Departments Visited')
+
+    plt.tight_layout()
+    plt.show()
+
+    print(dept_div_df.groupby('churn')['dept_diversity'].describe().round(2))
+
+def plot_products_eda(products, rare_threshold=100):
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # Department bar chart
+    dept_counts = products['department'].value_counts()
+    sns.barplot(x=dept_counts.values, y=dept_counts.index, ax=axes[0], orient='h')
+    axes[0].set_title('Product Counts by Department')
+    axes[0].set_xlabel('Count')
+    axes[0].set_ylabel('')
+
+    # National vs Private brand
+    brand_counts = products['brand'].value_counts()
+    sns.barplot(x=brand_counts.index, y=brand_counts.values, ax=axes[1])
+    axes[1].set_title('National vs Private Label Products')
+    axes[1].set_xlabel('Brand')
+    axes[1].set_ylabel('Count')
+    for bar, val in zip(axes[1].patches, brand_counts.values):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 50,
+                     f'{val:,}', ha='center', va='bottom', fontsize=10)
+
+    # Product category — top 20, flag rare categories
+    cat_counts = products['product_category'].value_counts()
+    rare = (cat_counts < rare_threshold).sum()
+    top_cats = cat_counts.head(20)
+    sns.barplot(x=top_cats.values, y=top_cats.index, ax=axes[2], orient='h')
+    axes[2].set_title(f'Top 20 Product Categories\n({rare} categories with < {rare_threshold} products)')
+    axes[2].set_xlabel('Count')
+    axes[2].set_ylabel('')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(f"\nTotal categories: {cat_counts.shape[0]}")
+    print(f"Rare categories (< {rare_threshold} products): {rare} ({rare/cat_counts.shape[0]*100:.1f}%)")
+    print(f"\nRare categories:\n{cat_counts[cat_counts < rare_threshold].sort_values()}")
+
+def plot_spend_by_product_attribute(transactions_train, products):
+    df = transactions_train.merge(products[['product_id', 'department', 'brand', 'product_category']], 
+                            on='product_id', how='left')
+
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+
+    # Total sales_value per department (top 15)
+    dept_spend = df.groupby('department')['sales_value'].sum().sort_values(ascending=False).head(15)
+    sns.barplot(x=dept_spend.values, y=dept_spend.index, ax=axes[0], orient='h')
+    axes[0].set_title('Total Spend by Department (Top 15)')
+    axes[0].set_xlabel('Total Sales Value ($)')
+    axes[0].set_ylabel('')
+
+    # Share of spend: Private vs National
+    brand_spend = df.groupby('brand')['sales_value'].sum()
+    brand_share = brand_spend / brand_spend.sum() * 100
+    sns.barplot(x=brand_share.index, y=brand_share.values, ax=axes[1])
+    axes[1].set_title('Share of Spend: National vs Private Label')
+    axes[1].set_xlabel('Brand')
+    axes[1].set_ylabel('Share of Total Spend (%)')
+    for bar, val in zip(axes[1].patches, brand_share.values):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+                     f'{val:.1f}%', ha='center', va='bottom', fontsize=11)
+
+    # Basket diversity: unique product_categories per household
+    basket_diversity = df.groupby('household_id')['product_category'].nunique()
+    sns.histplot(basket_diversity, bins=30, ax=axes[2], kde=True)
+    axes[2].set_title('Basket Diversity\n(Unique Product Categories per Household)')
+    axes[2].set_xlabel('Number of Unique Categories')
+    axes[2].set_ylabel('Number of Households')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(f"Median basket diversity: {basket_diversity.median():.0f} unique categories")
+    print(f"Mean basket diversity:   {basket_diversity.mean():.1f} unique categories")
+
+def plot_churn_product_features(transactions_train, products, churn_train):
+    df = transactions_train.merge(
+        products[['product_id', 'brand', 'department', 'product_category']],
+        on='product_id', how='left'
+    )
+
+    # Household-level aggregates
+    total_spend = df.groupby('household_id')['sales_value'].sum()
+    private_spend = df[df['brand'] == 'Private'].groupby('household_id')['sales_value'].sum()
+    private_share = (private_spend / total_spend).fillna(0).rename('private_label_share')
+
+    n_departments = df.groupby('household_id')['department'].nunique().rename('n_departments')
+
+    dominant_category = df.groupby('household_id')['product_category'].agg(
+        lambda x: x.value_counts().index[0]
+    ).rename('dominant_category')
+
+    df['total_discount'] = df['retail_disc'].abs() + df['coupon_disc'].abs() + df['coupon_match_disc'].abs()
+    n_baskets = df.groupby('household_id')['basket_id'].nunique()
+    avg_discount = (df.groupby('household_id')['total_discount'].sum() / n_baskets).rename('avg_discount_per_trip')
+
+    # Join with churn labels
+    hh = pd.concat([private_share, n_departments, dominant_category, avg_discount], axis=1)
+    hh = hh.join(churn_train.rename('churn')).dropna(subset=['churn'])
+    hh['churn_label'] = hh['churn'].map({0: 'Retained', 1: 'Churned'})
+
+    fig, axes = plt.subplots(1, 3, figsize=(22, 6))
+
+    # Number of departments shopped
+    sns.boxplot(data=hh, x='churn_label', y='n_departments', ax=axes[0])
+    axes[0].set_title('Departments Shopped')
+    axes[0].set_xlabel('')
+    axes[0].set_ylabel('Unique Departments')
+
+    # Dominant product category — top 10, grouped bar
+    top_cats = hh['dominant_category'].value_counts().head(10).index
+    cat_table = (
+        hh[hh['dominant_category'].isin(top_cats)]
+        .groupby(['dominant_category', 'churn_label'])
+        .size()
+        .unstack(fill_value=0)
+        .loc[top_cats]
+    )
+    cat_table.plot(kind='bar', ax=axes[1], edgecolor='white', alpha=0.85)
+    axes[1].set_title('Dominant Product Category (Top 10)')
+    axes[1].set_xlabel('')
+    axes[1].set_ylabel('Number of Households')
+    axes[1].tick_params(axis='x', rotation=45)
+    axes[1].legend(fontsize=9)
+
+    # Avg discount per trip
+    sns.boxplot(data=hh, x='churn_label', y='avg_discount_per_trip', ax=axes[2])
+    axes[2].set_title('Avg Discount per Trip')
+    axes[2].set_xlabel('')
+    axes[2].set_ylabel('Avg Discount ($)')
+
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
+
+    print(hh.groupby('churn_label')[[ 'n_departments', 'avg_discount_per_trip']]
+          .median().round(3))
+    
+    return hh
+
 
 def compare_customer_features_by_churn(log_customer_features, churn_train):
     from scipy import stats

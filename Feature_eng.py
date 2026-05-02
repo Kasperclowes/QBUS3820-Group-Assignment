@@ -95,6 +95,24 @@ def average_basket_size(transactions):
                .mean())
     return basket_size
 
+def department_diversity(transactions, products):
+    transactions = transactions.merge(products[['product_id', 'department']], on='product_id', how='left')
+    department_diversity = transactions.groupby('household_id')['department'].nunique()
+    return department_diversity
+
+def n_campaigns_targeted(campaigns, transactions):
+    household_ids = transactions['household_id'].unique()
+    counts = campaigns.groupby('household_id')['campaign_id'].nunique()
+    return counts.reindex(household_ids, fill_value=0).rename('n_campaigns_targeted')
+
+def was_targeted(campaigns, transactions):
+    household_ids = transactions['household_id'].unique()
+    targeted = set(campaigns['household_id'].unique())
+    return pd.Series(
+        [1 if hh in targeted else 0 for hh in household_ids],
+        index=household_ids,
+        name='was_targeted'
+    )
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
