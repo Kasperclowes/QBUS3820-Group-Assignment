@@ -462,6 +462,11 @@ def clean_transactions(transactions):
     transactions_valid = transactions[transactions['household_id'].isin(valid_households)].copy()
     transactions_test = transactions[transactions['household_id'].isin(test_households)].copy()
 
+    cutoff_date = transactions['transaction_timestamp'].max() - pd.Timedelta(weeks=3)
+    transactions_train = transactions_train[transactions_train['transaction_timestamp'] <= cutoff_date]
+    transactions_valid = transactions_valid[transactions_valid['transaction_timestamp'] <= cutoff_date]
+    transactions_test = transactions_test[transactions_test['transaction_timestamp'] <= cutoff_date]
+
     print(f"\nTransactions Split Summary:")
     print(f"\nTransaction counts:")
     print(f"Train transactions: {len(transactions_train)}")
@@ -997,3 +1002,40 @@ def clean_coupons(coupons):
     coupons[dup_mask].groupby('coupon_upc').size().sort_values(ascending=False)
     coupons_clean = coupons.drop_duplicates()
     coupons_clean = coupons_clean.reset_index(drop=True)
+
+def clean_coupon_redemptions(coupon_redemptions):
+    coupon_redemptions.info()
+    missing_counts = coupon_redemptions.isnull().sum()
+    print("Missing values in coupon_redemptions: ", missing_counts)
+    duplicates= coupon_redemptions.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+    
+
+def analyse_coupons(coupons, coupon_redemptions, churn_train):
+
+    print(f"Unique coupons: {coupons['coupon_upc'].nunique():,}")
+    print(f"Products with coupons: {coupons['product_id'].nunique():,}")
+    print(f"Campaigns with coupons: {coupons['campaign_id'].nunique()}")
+
+    products_per_coupon = coupons.groupby('coupon_upc')['product_id'].nunique()
+    print(f"\nSingle-product coupons: {(products_per_coupon == 1).mean()*100:.1f}%")
+    print(f"Multi-product coupons:  {(products_per_coupon > 1).mean()*100:.1f}%")
+
+    # Redemption rate
+    issued = coupons['coupon_upc'].nunique()
+    redeemed = coupon_redemptions['coupon_upc'].nunique()
+    print(f"\nRedemption rate: {redeemed/issued:.1%} of coupons redeemed")
+
+    # Household-level redemption
+    hh_redemptions = coupon_redemptions.groupby('household_id')['coupon_upc'].count()
+    redeemed_households = hh_redemptions[hh_redemptions > 0]
+    total_households = churn_train.index.nunique()
+    print(f"Households redeeming at least one coupon: {len(redeemed_households):,} ({len(redeemed_households)/total_households:.1%})")
+    print(f"Average redemptions per redeeming household: {redeemed_households.mean():.1f}")
+
+    # Churn rate by coupon redemption
+    hh_redeemed = hh_redemptions.reindex(churn_train.index, fill_value=0)
+    redeemed_churn = churn_train[hh_redeemed > 0].mean()
+    non_redeemed_churn = churn_train[hh_redeemed == 0].mean()
+    print(f"\nChurn rate - redeemed coupon: {redeemed_churn:.1%}")
+    print(f"Churn rate - no coupon redeemed: {non_redeemed_churn:.1%}")
