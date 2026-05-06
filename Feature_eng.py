@@ -155,6 +155,30 @@ def department_diversity(transactions, products):
     department_diversity = transactions.groupby('household_id')['department'].nunique()
     return department_diversity
 
+def days_since_last_purchase(transactions):
+    """
+    Calculate days since last purchase for each household.
+    
+    Parameters:
+        transactions : transactions dataframe
+    
+    Returns:
+        Series with days since last purchase indexed by household_id
+    """
+    transactions = transactions.copy()
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    
+    # Find the end of the dataset
+    dataset_end_date = transactions['transaction_datetime'].max()
+    
+    # Find the last purchase date per household
+    last_purchase = transactions.groupby('household_id')['transaction_datetime'].max()
+    
+    # Calculate days since last purchase
+    days_since_last = (dataset_end_date - last_purchase).dt.days
+    
+    return days_since_last
+
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
@@ -220,7 +244,6 @@ def visit_trend(transactions):
 #visit trend is a measure of how much a household's visit frequency has changed recently compared to the past. 
 #A positive trend indicates increased visit frequency, while a negative trend indicates decreased visit frequency.
 
-
 def campaign_features(campaign_descriptions, campaigns, index):
 
     campaign_descriptions = campaign_descriptions.copy()
@@ -254,4 +277,69 @@ def promotion_features(promotions, transactions):
         display_purchase_rate=('on_display', 'mean'),
         mailer_purchase_rate=('on_mailer', 'mean'),
     )
+
+
+
+def build_features(transactions, campaigns, campaign_descriptions, promotions, products, spend_trend_data=None, visit_trend_data=None):
+    """
+    Concatenate all features to create X_train for decision tree.
+    
+    Parameters:
+        transactions              : transactions dataframe
+        campaigns                 : campaigns dataframe
+        campaign_descriptions     : campaign_descriptions dataframe
+        promotions               : promotions dataframe
+        products                 : products dataframe
+        spend_trend_data         : pre-computed spend_trend (optional, computed if None)
+        visit_trend_data         : pre-computed visit_trend (optional, computed if None)
+    
+    Returns:
+        DataFrame with all features concatenated, indexed by household_id
+    """
+    # Get list of all households from transactions
+    all_households = transactions['household_id'].unique()
+    
+    # Compute individual features
+    total_spend_feat = total_spend(transactions).to_frame(name='total_spend')
+    total_transactions_feat = total_transactions(transactions).to_frame(name='total_transactions')
+    avg_basket_feat = average_basket_size(transactions).to_frame(name='average_basket_size')
+    days_since_last_purchase_feat = days_since_last_purchase(transactions).to_frame(name='days_since_last_purchase')
+    
+    # Use pre-computed trends if provided, otherwise compute
+    if spend_trend_data is None:
+        spend_trend_feat = spend_trend(transactions)
+    else:
+        spend_trend_feat = spend_trend_data
+    
+    if visit_trend_data is None:
+        visit_trend_feat = visit_trend(transactions)
+    else:
+        visit_trend_feat = visit_trend_data
+    
+    # Get campaign and promotion features
+    campaign_feat = campaign_features(campaign_descriptions, campaigns, all_households)
+    promotion_feat = promotion_features(promotions, transactions)
+    
+    # Reindex promotion features to include all households (fill missing with 0)
+    promotion_feat = promotion_feat.reindex(all_households, fill_value=0)
+    
+    # Concatenate all features along columns (axis=1)
+    X = pd.concat([
+        total_spend_feat,
+        total_transactions_feat,
+        avg_basket_feat,
+        days_since_last_purchase_feat,
+        spend_trend_feat,
+        visit_trend_feat,
+        campaign_feat,
+        promotion_feat
+    ], axis=1)
+    
+    # Ensure all households are represented (fill missing rows with 0)
+    X = X.reindex(all_households) 
+    #instead of filling missing values, output error
+    if X.isnull().any().any():
+        raise ValueError("Missing values found in feature matrix X. Please check the data and feature engineering steps.")
+    
+    return X
 
