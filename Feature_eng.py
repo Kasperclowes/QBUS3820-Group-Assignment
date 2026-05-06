@@ -38,6 +38,11 @@ def calculate_days_between_trips(transactions):
     
     return household_trips
 
+def transactions_cut(transactions, cutoff):
+    cutoff_date = transactions['transaction_timestamp'].max() - pd.Timedelta(weeks=cutoff)
+    transactions_cut = transactions[transactions['transaction_timestamp'] <= cutoff_date]
+    return transactions_cut
+
 
 def churn(transactions, threshold_days=21):
     """

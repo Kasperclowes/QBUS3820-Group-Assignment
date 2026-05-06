@@ -412,7 +412,11 @@ def evaluate_models(models, model_names, X_valid, y_valid, decision_threshold, l
 #GENERAL DATA CLEANING (EDA)
 
 def household_split(transactions):
-    unique_households = transactions['household_id'].unique()
+    
+    cutoff_date = transactions['transaction_timestamp'].max() - pd.Timedelta(weeks=3)
+    transactions_cut = transactions[transactions['transaction_timestamp'] <= cutoff_date]
+    
+    unique_households = transactions_cut['household_id'].unique()
     np.random.seed(42)  # For reproducibility
     np.random.shuffle(unique_households)
 
@@ -456,16 +460,14 @@ def clean_transactions(transactions):
 
 
     train_households, valid_households, test_households = household_split(transactions)
+    
+    cutoff_date = transactions['transaction_timestamp'].max() - pd.Timedelta(weeks=3)
+    transactions_cut = transactions[transactions['transaction_timestamp'] <= cutoff_date]
 
     # Create transaction datasets based on household splits
-    transactions_train = transactions[transactions['household_id'].isin(train_households)].copy()
-    transactions_valid = transactions[transactions['household_id'].isin(valid_households)].copy()
-    transactions_test = transactions[transactions['household_id'].isin(test_households)].copy()
-
-    cutoff_date = transactions['transaction_timestamp'].max() - pd.Timedelta(weeks=3)
-    transactions_train = transactions_train[transactions_train['transaction_timestamp'] <= cutoff_date]
-    transactions_valid = transactions_valid[transactions_valid['transaction_timestamp'] <= cutoff_date]
-    transactions_test = transactions_test[transactions_test['transaction_timestamp'] <= cutoff_date]
+    transactions_train = transactions_cut[transactions_cut['household_id'].isin(train_households)].copy()
+    transactions_valid = transactions_cut[transactions_cut['household_id'].isin(valid_households)].copy()
+    transactions_test = transactions_cut[transactions_cut['household_id'].isin(test_households)].copy()
 
     print(f"\nTransactions Split Summary:")
     print(f"\nTransaction counts:")
@@ -671,8 +673,9 @@ def clean_campaigns(campaigns):
     print("Missing values in campaigns: ", missing_counts)
     duplicates= campaigns.duplicated().sum()
     print(f"Number of duplicate rows: {duplicates}")
-
+    
     train_households, valid_households, test_households = household_split(transactions)
+    
     campaigns_train = campaigns[campaigns['household_id'].isin(train_households)]
     campaigns_valid = campaigns[campaigns['household_id'].isin(valid_households)]
     campaigns_test  = campaigns[campaigns['household_id'].isin(test_households)]
