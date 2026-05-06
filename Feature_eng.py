@@ -158,12 +158,11 @@ def department_diversity(transactions, products):
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    #we want spend trend for each houshold id to be spend trend = recent spend (4-8 weeks ago)- past spend (8-12 weeks ago)/ past spend (8-12 weeks ago)
-    transactions['week'] = transactions['transaction_datetime'].dt.isocalendar().week
-    transactions['year'] = transactions['transaction_datetime'].dt.year
-    # Define recent and past periods
-    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
-    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=12))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8)))
+    # Define recent and past periods (transactions already have past 3 weeks removed)
+    # Recent: last 0-4 weeks
+    # Past: 4-8 weeks ago
+    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
+    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
     # Calculate spend in recent and past periods
     recent_spend = transactions[recent_period].groupby('household_id')['sales_value'].sum()
     past_spend = transactions[past_period].groupby('household_id')['sales_value'].sum()
@@ -179,10 +178,11 @@ def spend_trend(transactions):
 
 def visit_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    #we want visit trend for each houshold id to be visit trend = recent visits (4-8 weeks ago)- past visits (8-12 weeks ago)/ past visits (8-12 weeks ago)
-    # Define recent and past periods
-    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
-    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=12))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8)))
+    # Define recent and past periods (transactions already have past 3 weeks removed)
+    # Recent: last 0-4 weeks
+    # Past: 4-8 weeks ago
+    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
+    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
     # Calculate number of visits (transactions) in recent and past periods
     recent_visits = transactions[recent_period].groupby('household_id').size()
     past_visits = transactions[past_period].groupby('household_id').size()
