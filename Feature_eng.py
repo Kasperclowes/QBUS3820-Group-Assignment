@@ -158,6 +158,10 @@ def department_diversity(transactions, products):
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    
+    # Get all unique household_ids in the dataset
+    all_households = transactions['household_id'].unique()
+    
     # Define recent and past periods (transactions already have past 3 weeks removed)
     # Recent: last 0-4 weeks
     # Past: 4-8 weeks ago
@@ -171,6 +175,14 @@ def spend_trend(transactions):
     spend_trend = spend_trend.fillna(0)  # Replace NaN with 0 (no change if past spend is zero)
     spend_trend = spend_trend.to_frame()
     spend_trend.columns = ['spend_trend']
+    
+    # Find households with no transactions in the period (churned) and assign -1
+    households_with_trends = set(spend_trend.index)
+    missing_households = set(all_households) - households_with_trends
+    if len(missing_households) > 0:
+        missing_df = pd.DataFrame({'spend_trend': -1.0}, index=pd.Index(missing_households, name='household_id'))
+        spend_trend = pd.concat([spend_trend, missing_df])
+    
     return spend_trend
 
 #spend trend is a measure of how much a household's spending has changed recently compared to the past. 
@@ -178,6 +190,10 @@ def spend_trend(transactions):
 
 def visit_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    
+    # Get all unique household_ids in the dataset
+    all_households = transactions['household_id'].unique()
+    
     # Define recent and past periods (transactions already have past 3 weeks removed)
     # Recent: last 0-4 weeks
     # Past: 4-8 weeks ago
@@ -191,6 +207,14 @@ def visit_trend(transactions):
     visit_trend = visit_trend.fillna(0)  # Replace NaN with 0 (no change if past visits is zero)
     visit_trend = visit_trend.to_frame()
     visit_trend.columns = ['visit_trend']
+    
+    # Find households with no transactions in the period (churned) and assign -1
+    households_with_trends = set(visit_trend.index)
+    missing_households = set(all_households) - households_with_trends
+    if len(missing_households) > 0:
+        missing_df = pd.DataFrame({'visit_trend': -1.0}, index=pd.Index(missing_households, name='household_id'))
+        visit_trend = pd.concat([visit_trend, missing_df])
+    
     return visit_trend
 
 #visit trend is a measure of how much a household's visit frequency has changed recently compared to the past. 
