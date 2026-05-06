@@ -45,7 +45,8 @@ Instead of having a constant churn definition of no transaction in past 3/4 week
 we want to make an adaptive churn definition for each unique houshold. Recording the time between each 
 transaction that one unqie houshold has done over the entire recorded time period, and then finding 
 the average time between a transaction for this household. This would make each churn definition for each household be 
-adapted to the behaviour of the houshold.  
+adapted to the behaviour of the houshold, where a chrun definition would be defined as 
+CHURN TIME = average houshold transac time + 1 week 
 
 Report structure: 
 
