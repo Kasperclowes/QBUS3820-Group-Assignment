@@ -164,19 +164,6 @@ def department_diversity(transactions, products):
     department_diversity = transactions.groupby('household_id')['department'].nunique()
     return department_diversity
 
-def n_campaigns_targeted(campaigns, transactions):
-    household_ids = transactions['household_id'].unique()
-    counts = campaigns.groupby('household_id')['campaign_id'].nunique()
-    return counts.reindex(household_ids, fill_value=0).rename('n_campaigns_targeted')
-
-def was_targeted(campaigns, transactions):
-    household_ids = transactions['household_id'].unique()
-    targeted = set(campaigns['household_id'].unique())
-    return pd.Series(
-        [1 if hh in targeted else 0 for hh in household_ids],
-        index=household_ids,
-        name='was_targeted'
-    )
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
@@ -219,3 +206,22 @@ def visit_trend(transactions):
 #A positive trend indicates increased visit frequency, while a negative trend indicates decreased visit frequency.
 
 
+def campaign_features(campaign_descriptions, campaigns, index):
+
+    campaign_descriptions = campaign_descriptions.copy()
+
+
+    campaign_hh = campaigns.merge(campaign_descriptions, on='campaign_id')
+
+    agg = campaign_hh.groupby('household_id').agg(
+        num_campaigns=('campaign_id', 'nunique'),
+    )
+
+    type_counts = (
+        campaign_hh.groupby(['household_id', 'campaign_type'])
+        .size()
+        .unstack(fill_value=0)
+    )
+    type_counts.columns = [f'num_campaign_{c.lower().replace(" ", "_")}' for c in type_counts.columns]
+
+    return agg.join(type_counts).reindex(index, fill_value=0)
