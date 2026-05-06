@@ -1042,3 +1042,56 @@ def analyse_coupons(coupons, coupon_redemptions, churn_train):
     non_redeemed_churn = churn_train[hh_redeemed == 0].mean()
     print(f"\nChurn rate - redeemed coupon: {redeemed_churn:.1%}")
     print(f"Churn rate - no coupon redeemed: {non_redeemed_churn:.1%}")
+
+def plot_coupon_analysis(coupons, coupon_redemptions, churn_train, colours):
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Coupons & Redemptions Analysis', fontsize=16, fontweight='bold')
+
+    # 1. Churn rate by number of coupons redeemed (binned)
+    hh_redemptions = coupon_redemptions.groupby('household_id')['coupon_upc'].count()
+    hh_redemptions_aligned = hh_redemptions.reindex(churn_train.index, fill_value=0)
+    bins = [-1, 0, 2, 5, 10, hh_redemptions_aligned.max()]
+    labels = ['0', '1-2', '3-5', '6-10', '10+']
+    redemption_band = pd.cut(hh_redemptions_aligned, bins=bins, labels=labels)
+    churn_by_band = churn_train.groupby(redemption_band).mean() * 100
+    churn_by_band.plot(kind='bar', ax=axes[0, 0], color=colours[2], alpha=0.85, edgecolor='white')
+    axes[0, 0].set_title('Churn Rate by Coupons Redeemed')
+    axes[0, 0].set_xlabel('Number of Coupons Redeemed')
+    axes[0, 0].set_ylabel('Churn Rate (%)')
+    axes[0, 0].tick_params(axis='x', rotation=0)
+    for bar in axes[0, 0].patches:
+        axes[0, 0].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
+                        f'{bar.get_height():.1f}%', ha='center', va='bottom', fontsize=9)
+
+    # 2. Unique coupons per campaign
+    coupons_per_campaign = coupons.groupby('campaign_id')['coupon_upc'].nunique().sort_values(ascending=False)
+    coupons_per_campaign.plot(kind='bar', ax=axes[0, 1], color=colours[0], alpha=0.85, edgecolor='white')
+    axes[0, 1].set_title('Unique Coupons per Campaign')
+    axes[0, 1].set_xlabel('Campaign ID')
+    axes[0, 1].set_ylabel('Number of Coupons')
+    axes[0, 1].tick_params(axis='x', rotation=45)
+
+    # 3. Redemption count distribution among redeeming households
+    redeemers = hh_redemptions[hh_redemptions > 0]
+    axes[1, 0].hist(redeemers, bins=20, color=colours[3], alpha=0.85, edgecolor='white')
+    axes[1, 0].set_title('Redemptions per Household (Redeemers Only)')
+    axes[1, 0].set_xlabel('Number of Redemptions')
+    axes[1, 0].set_ylabel('Number of Households')
+    axes[1, 0].axvline(redeemers.mean(), color=colours[2], linestyle='--', linewidth=1.5,
+                       label=f'Mean: {redeemers.mean():.1f}')
+    axes[1, 0].legend()
+
+    # 4. Monthly redemptions over time
+    redemption_dates = coupon_redemptions.copy()
+    redemption_dates['redemption_date'] = pd.to_datetime(redemption_dates['redemption_date'])
+    monthly = redemption_dates.groupby(redemption_dates['redemption_date'].dt.to_period('M')).size()
+    monthly.index = monthly.index.astype(str)
+    monthly.plot(kind='line', ax=axes[1, 1], color=colours[1], marker='o', linewidth=2, markersize=5)
+    axes[1, 1].set_title('Monthly Redemptions Over Time')
+    axes[1, 1].set_xlabel('Month')
+    axes[1, 1].set_ylabel('Number of Redemptions')
+    axes[1, 1].tick_params(axis='x', rotation=45)
+    axes[1, 1].fill_between(range(len(monthly)), monthly.values, alpha=0.15, color=colours[1])
+
+    plt.tight_layout()
+    plt.show()

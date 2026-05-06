@@ -278,6 +278,9 @@ def promotion_features(promotions, transactions):
         mailer_purchase_rate=('on_mailer', 'mean'),
     )
 
+def coupon_redemption_count(coupon_redemptions, index):
+    counts = coupon_redemptions.groupby('household_id')['coupon_upc'].count()
+    return counts.reindex(index, fill_value=0)
 
 
 def build_features(transactions, campaigns, campaign_descriptions, promotions, spend_trend_data=None, visit_trend_data=None):
