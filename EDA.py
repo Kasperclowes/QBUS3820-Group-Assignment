@@ -878,8 +878,6 @@ def plot_churn_product_features(transactions_train, products, churn_train):
 
     print(hh.groupby('churn_label')[[ 'n_departments', 'avg_discount_per_trip']]
           .median().round(3))
-    
-    return hh
 
 
 def compare_customer_features_by_churn(log_customer_features, churn_train):
