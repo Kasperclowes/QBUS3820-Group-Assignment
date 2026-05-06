@@ -134,7 +134,7 @@ def total_spend(transactions):
     total_spend = transactions.groupby('household_id')['sales_value'].sum()
     return total_spend
 
-def transaction_frequency(transactions):
+def total_transactions(transactions):
     transaction_freq = transactions.groupby('household_id').size()
     return transaction_freq
 
