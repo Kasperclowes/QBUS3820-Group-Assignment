@@ -21,11 +21,11 @@ products = pd.read_parquet(os.path.join(data_dir, 'products.parquet'))
 campaigns = pd.read_parquet(os.path.join(data_dir, 'campaigns.parquet'))
 campaign_descriptions = pd.read_parquet(os.path.join(data_dir, 'campaign_descriptions.parquet'))
 promotions = pd.read_parquet(os.path.join(data_dir, 'promotions.parquet'))
-#coupons = pd.read_parquet(os.path.join(data_dir, 'coupons.parquet'))
-#coupon_redemptions = pd.read_parquet(os.path.join(data_dir, 'coupon_redemptions.parquet'))
+coupons = pd.read_parquet(os.path.join(data_dir, 'coupons.parquet'))
+coupon_redemptions = pd.read_parquet(os.path.join(data_dir, 'coupon_redemptions.parquet'))
 
 def retrieve_data():
-    return transactions, demographics, products, campaigns, campaign_descriptions, promotions
+    return transactions, demographics, products, campaigns, campaign_descriptions, promotions, coupons, coupon_redemptions
 
 #---------------------------------------------------------------------------------
 #HISTOGRAMS, TRANSFORMATIONS AND PLOTS 
@@ -986,3 +986,14 @@ def plot_campaign_analysis(campaigns_train, campaign_descriptions, churn_train):
         
     plt.tight_layout()
     plt.show()
+
+def clean_coupons(coupons):
+    coupons.info()
+    missing_counts = coupons.isnull().sum()
+    print("Missing values in coupons: ", missing_counts)
+    duplicates= coupons.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+    dup_mask = coupons.duplicated(keep=False)
+    coupons[dup_mask].groupby('coupon_upc').size().sort_values(ascending=False)
+    coupons_clean = coupons.drop_duplicates()
+    coupons_clean = coupons_clean.reset_index(drop=True)
