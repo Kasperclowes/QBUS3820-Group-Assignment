@@ -25,6 +25,20 @@ promotions = pd.read_parquet(os.path.join(data_dir, 'promotions.parquet'))
 def retrieve_data():
     return transactions, demographics, products, campaigns, campaign_descriptions, promotions
 
+def calculate_days_between_trips(transactions):
+    """Calculate days between consecutive shopping trips for a household"""
+    # Sort by household and date to ensure chronological order within each household
+    household_trips = transactions.sort_values(['household_id', 'transaction_timestamp']).copy()
+    
+    # Convert to datetime for proper date arithmetic
+    household_trips['datetime_date'] = pd.to_datetime(household_trips['transaction_timestamp'])
+    
+    # Calculate days since last trip WITHIN each household
+    household_trips['days_since_last_trip'] = household_trips.groupby('household_id')['datetime_date'].diff().dt.days
+    
+    return household_trips
+
+
 def churn(transactions, threshold_days=21):
     """
     Adds a binary churn column to the transactions dataframe.
@@ -55,6 +69,42 @@ def churn(transactions, threshold_days=21):
     # Assign churn: 1 if days since last purchase >= threshold, else 0
     last_purchase['churn'] = (
         last_purchase['days_since_last_purchase'] >= threshold_days
+    ).astype(int)
+
+    train_households, valid_households, test_households = eda.household_split(transactions)
+    churn = last_purchase.set_index('household_id')['churn']
+    churn_train = churn[churn.index.isin(train_households)]
+    churn_valid = churn[churn.index.isin(valid_households)]
+    churn_test  = churn[churn.index.isin(test_households)]
+
+    return churn, churn_train, churn_valid, churn_test
+
+def adaptive_churn(transactions, k=1): 
+    houshold_trips = calculate_days_between_trips(transactions)
+    # find the average days between trips for each household and put into a new column
+    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
+
+    transactions = transactions.copy()
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+
+    # Find the last purchase date per household
+    last_purchase = transactions.groupby('household_id')['transaction_datetime'].max().reset_index()
+    last_purchase.columns = ['household_id', 'last_purchase_date']
+
+    # Find the end of the dataset
+    dataset_end_date = transactions['transaction_datetime'].max()
+
+    # Calculate days since last purchase
+    last_purchase['days_since_last_purchase'] = (
+        dataset_end_date - last_purchase['last_purchase_date']
+    ).dt.days
+
+    # Merge to match each household with its own average days between trips
+    last_purchase = last_purchase.merge(household_avg_days, on='household_id', how='left')
+
+    # Assign churn: 1 if days since last purchase >= average days between trips + k*std_dev, else 0
+    last_purchase['churn'] = (
+        last_purchase['days_since_last_purchase'] >= last_purchase['days_since_last_trip'] + k * last_purchase['days_since_last_trip'].std()
     ).astype(int)
 
     train_households, valid_households, test_households = eda.household_split(transactions)
