@@ -303,7 +303,7 @@ def product_features(transactions, products):
     return pd.concat([private_share, n_departments, avg_discount], axis=1)
 
 
-def build_features(transactions, campaigns, campaign_descriptions, promotions, products, spend_trend_data=None, visit_trend_data=None):
+def build_features(transactions, campaigns, campaign_descriptions, promotions, spend_trend_data=None, visit_trend_data=None, coupon_redemptions=None):
     """
     Concatenate all features to create X_train for decision tree.
     
@@ -312,10 +312,10 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, p
         campaigns                 : campaigns dataframe
         campaign_descriptions     : campaign_descriptions dataframe
         promotions               : promotions dataframe
-        products                 : products dataframe
         spend_trend_data         : pre-computed spend_trend (optional, computed if None)
         visit_trend_data         : pre-computed visit_trend (optional, computed if None)
-    
+        coupon_redemptions       : coupon_redemptions dataframe (optional)
+
     Returns:
         DataFrame with all features concatenated, indexed by household_id
     """
@@ -327,7 +327,7 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, p
     total_transactions_feat = total_transactions(transactions).to_frame(name='total_transactions')
     avg_basket_feat = average_basket_size(transactions).to_frame(name='average_basket_size')
     days_since_last_purchase_feat = days_since_last_purchase(transactions).to_frame(name='days_since_last_purchase')
-    
+    coupon_redemption_feat = coupon_redemption_count(coupon_redemptions, index=all_households).to_frame(name='coupon_redemption_count')
     # Use pre-computed trends if provided, otherwise compute
     if spend_trend_data is None:
         spend_trend_feat = spend_trend(transactions)
@@ -352,6 +352,7 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, p
         total_transactions_feat,
         avg_basket_feat,
         days_since_last_purchase_feat,
+        coupon_redemption_feat,
         spend_trend_feat,
         visit_trend_feat,
         campaign_feat,
