@@ -151,20 +151,28 @@ def department_diversity(transactions, products):
     return department_diversity
 
 
-def spend_trend(transactions, lag_days=30):
+def spend_trend(transactions, k=1):
     """
     Calculate spend trend with temporal separation to avoid data leakage.
+    Uses the adaptive churn threshold to determine safe lag period.
     
     Parameters:
         transactions : the transactions dataframe
-        lag_days     : number of days before dataset end to use as feature cutoff (default 30)
-                       Features are calculated from before this cutoff, churn is evaluated after
+        k            : multiplier for standard deviation (should match adaptive_churn k value)
     
     Returns:
         DataFrame with spend_trend for each household
     """
     transactions = transactions.copy()
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    
+    # Calculate maximum churn threshold to determine safe lag
+    houshold_trips = calculate_days_between_trips(transactions)
+    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
+    
+    # Max threshold = max(avg_days) + k * std(avg_days)
+    max_churn_threshold = household_avg_days['days_since_last_trip'].mean() + k * household_avg_days['days_since_last_trip'].std()
+    lag_days = int(np.ceil(max_churn_threshold)) + 5  # Add 5-day buffer for safety
     
     dataset_end_date = transactions['transaction_datetime'].max()
     cutoff_date = dataset_end_date - pd.Timedelta(days=lag_days)
@@ -201,20 +209,28 @@ def spend_trend(transactions, lag_days=30):
 #spend trend is a measure of how much a household's spending has changed recently compared to the past. 
 #A positive trend indicates increased spending, while a negative trend indicates decreased spending.
 
-def visit_trend(transactions, lag_days=30):
+def visit_trend(transactions, k=1):
     """
     Calculate visit trend with temporal separation to avoid data leakage.
+    Uses the adaptive churn threshold to determine safe lag period.
     
     Parameters:
         transactions : the transactions dataframe
-        lag_days     : number of days before dataset end to use as feature cutoff (default 30)
-                       Features are calculated from before this cutoff, churn is evaluated after
+        k            : multiplier for standard deviation (should match adaptive_churn k value)
     
     Returns:
         DataFrame with visit_trend for each household
     """
     transactions = transactions.copy()
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    
+    # Calculate maximum churn threshold to determine safe lag
+    houshold_trips = calculate_days_between_trips(transactions)
+    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
+    
+    # Max threshold = max(avg_days) + k * std(avg_days)
+    max_churn_threshold = household_avg_days['days_since_last_trip'].mean() + k * household_avg_days['days_since_last_trip'].std()
+    lag_days = int(np.ceil(max_churn_threshold)) + 5  # Add 5-day buffer for safety
     
     dataset_end_date = transactions['transaction_datetime'].max()
     cutoff_date = dataset_end_date - pd.Timedelta(days=lag_days)
