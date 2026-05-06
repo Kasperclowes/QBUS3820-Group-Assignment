@@ -842,3 +842,72 @@ def compare_customer_features_by_churn(log_customer_features, churn_train):
     print("\n\nStatistically Significant Differences (p < 0.05):")
     significant = metrics_df[metrics_df['T_PValue'] < 0.05][['Feature', 'Percent_Difference', 'T_PValue']]
     print(significant.to_string())
+
+def clean_campaign_description(campaign_description):
+    campaign_description.info()
+    missing_counts = campaign_description.isnull().sum()
+    print("Missing values in campaign_description: ", missing_counts)
+    duplicates= campaign_description.duplicated().sum()
+    print(f"Number of duplicate rows: {duplicates}")
+
+def analyse_campaigns(campaigns, campaign_descriptions):
+    campaign_analysis = campaigns.merge(campaign_descriptions, on='campaign_id')
+    type_participation = campaign_analysis.groupby('campaign_type').agg({
+        'household_id': 'nunique',
+        'campaign_id': 'nunique'
+    }).rename(columns={'household_id': 'unique_households', 'campaign_id': 'num_campaigns'})
+
+    print("Participation by Campaign Type:")
+    for camp_type in type_participation.index:
+        households = type_participation.loc[camp_type, 'unique_households']
+        campaigns_count = type_participation.loc[camp_type, 'num_campaigns']
+        avg_reach = households / campaigns_count if campaigns_count > 0 else 0
+        print(f"   {camp_type}: {households:,} households across {campaigns_count} campaigns (avg {avg_reach:.0f} households/campaign)")
+
+    campaign_descriptions['duration_days'] = (campaign_descriptions['end_date'] - campaign_descriptions['start_date']).dt.days
+    print(f"\nAverage campaign duration: {campaign_descriptions['duration_days'].mean():.1f} days")
+
+def plot_campaign_analysis(campaigns_train, campaign_descriptions, churn_train):
+    household_campaigns = campaigns_train.groupby('household_id')['campaign_id'].nunique()
+    campaign_analysis = campaigns_train.merge(campaign_descriptions, on='campaign_id')
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Campaign Analysis Overview', fontsize=16, fontweight='bold')
+
+    # Campaigns per household distribution
+    household_campaigns.hist(bins=20, ax=axes[0, 0], alpha=0.7)
+    axes[0, 0].set_title('Campaigns per Household')
+    axes[0, 0].set_xlabel('Number of Campaigns')
+    axes[0, 0].set_ylabel('Number of Households')
+
+    # Churn rate by campaign type
+    type_churn = campaign_analysis.merge(churn_train, on='household_id')
+    churn_by_type = type_churn.groupby('campaign_type')['churn'].mean()
+    churn_by_type.plot(kind='bar', ax=axes[0, 1], alpha=0.7)
+    axes[0, 1].set_title('Churn Rate by Campaign Type')
+    axes[0, 1].set_xlabel('Campaign Type')
+    axes[0, 1].set_ylabel('Churn Rate')
+    axes[0, 1].tick_params(axis='x', rotation=0)
+
+    # Churn rate by number of campaigns received
+    hh_camp_df = household_campaigns.reset_index()
+    hh_camp_df.columns = ['household_id', 'campaign_count']
+    hh_camp_churn = hh_camp_df.merge(churn_train, on='household_id')
+    hh_camp_churn['campaign_bin'] = pd.cut(hh_camp_churn['campaign_count'], bins=5)
+    churn_by_count = hh_camp_churn.groupby('campaign_bin', observed=True)['churn'].mean()
+    churn_by_count.plot(kind='bar', ax=axes[1, 0], alpha=0.7)
+    axes[1, 0].set_title('Churn Rate by Campaigns Received')
+    axes[1, 0].set_xlabel('Campaign Count Bucket')
+    axes[1, 0].set_ylabel('Churn Rate')
+    axes[1, 0].tick_params(axis='x', rotation=30)
+
+    # Campaign duration distribution
+    campaign_descriptions['duration_days'].hist(bins=15, ax=axes[1, 1], alpha=0.7)
+    axes[1, 1].set_title('Campaign Duration Distribution')
+    axes[1, 1].set_xlabel('Duration (Days)')
+    axes[1, 1].set_ylabel('Number of Campaigns')
+
+    for ax in axes.flat:
+        ax.grid(False)
+        
+    plt.tight_layout()
+    plt.show()
