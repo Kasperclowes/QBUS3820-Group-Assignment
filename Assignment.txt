@@ -69,3 +69,19 @@ The report content should include:
 • Appendix C: Additional tables and figures (no page limit)
 
 
+
+PLAN MOVING FORWARD: 
+
+- Finalize amount of predictors and concatence all in one pandas dataframe, one training, validation and test datasets
+-update churn definition to adaptive/personalized churn 
+- make models that takes in predictors and outputs binary churn/no-churn value: 
+    - classification tree model (BASELINE MODEL)
+    - classifcation forest 
+    - logistic regression 
+    - deep learning 
+    - Gradient boosting 
+    - Newtons method 
+
+
+-For each model adjust hyperparameters, feature selection and combination of features, 
+test to see what minimizes validation loss the most 
