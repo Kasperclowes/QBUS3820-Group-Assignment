@@ -113,6 +113,20 @@ def adaptive_churn(transactions, k=1):
     churn_valid = churn[churn.index.isin(valid_households)]
     churn_test  = churn[churn.index.isin(test_households)]
 
+
+    print("\nDEBUG INFO:")
+    houshold_trips = calculate_days_between_trips(eda.transactions)
+    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
+    print(f"Average days between trips - Mean: {household_avg_days['days_since_last_trip'].mean():.2f}, Std: {household_avg_days['days_since_last_trip'].std():.2f}")
+    print(f"Threshold (avg + k*std): {household_avg_days['days_since_last_trip'].mean() + k * household_avg_days['days_since_last_trip'].std():.2f}")
+    print(f"\nDays since last purchase stats:")
+    transactions = eda.transactions.copy()
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    last_purchase = transactions.groupby('household_id')['transaction_datetime'].max().reset_index()
+    dataset_end_date = transactions['transaction_datetime'].max()
+    last_purchase['days_since_last_purchase'] = (dataset_end_date - last_purchase['transaction_datetime']).dt.days
+    print(f"Min: {last_purchase['days_since_last_purchase'].min()}, Max: {last_purchase['days_since_last_purchase'].max()}, Mean: {last_purchase['days_since_last_purchase'].mean():.2f}")
+
     return churn, churn_train, churn_valid, churn_test
 
 def collapse_income_categories(demographics_train, demographics_valid, demographics_test):
