@@ -203,3 +203,5 @@ def visit_trend(transactions):
 
 #visit trend is a measure of how much a household's visit frequency has changed recently compared to the past. 
 #A positive trend indicates increased visit frequency, while a negative trend indicates decreased visit frequency.
+
+
