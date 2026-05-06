@@ -303,7 +303,7 @@ def product_features(transactions, products):
     return pd.concat([private_share, n_departments, avg_discount], axis=1)
 
 
-def build_features(transactions, campaigns, campaign_descriptions, promotions, spend_trend_data=None, visit_trend_data=None, coupon_redemptions=None):
+def build_features(transactions, campaigns, campaign_descriptions, promotions,coupon_redemptions, products, spend_trend_data=None, visit_trend_data=None):
     """
     Concatenate all features to create X_train for decision tree.
     
@@ -328,6 +328,7 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, s
     avg_basket_feat = average_basket_size(transactions).to_frame(name='average_basket_size')
     days_since_last_purchase_feat = days_since_last_purchase(transactions).to_frame(name='days_since_last_purchase')
     coupon_redemption_feat = coupon_redemption_count(coupon_redemptions, index=all_households).to_frame(name='coupon_redemption_count')
+    product_feat = product_features(transactions, products)
     # Use pre-computed trends if provided, otherwise compute
     if spend_trend_data is None:
         spend_trend_feat = spend_trend(transactions)
@@ -356,7 +357,8 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, s
         spend_trend_feat,
         visit_trend_feat,
         campaign_feat,
-        promotion_feat
+        promotion_feat, 
+        product_feat
     ], axis=1)
     
     # Ensure all households are represented (fill missing rows with 0)
