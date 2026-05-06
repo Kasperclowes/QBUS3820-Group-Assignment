@@ -51,6 +51,12 @@ import graphviz
 from sklearn.tree import export_graphviz
 #features is a list of the predictor names that we use  to split the data in the decision tree
 def visualize_tree(clf, features): 
+    import os
+    # Add Graphviz bin directory to PATH so dot executable can be found
+    graphviz_path = r"C:\Program Files\Graphviz\bin"
+    if graphviz_path not in os.environ['PATH']:
+        os.environ['PATH'] = graphviz_path + os.pathsep + os.environ['PATH']
+    
     dot_data = export_graphviz(clf, out_file=None, impurity=False, feature_names=features, 
                                class_names=['No-churn', 'Churn'], rounded=True)
     graph = graphviz.Source(dot_data)
