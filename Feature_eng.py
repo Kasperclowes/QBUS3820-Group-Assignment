@@ -282,6 +282,26 @@ def coupon_redemption_count(coupon_redemptions, index):
     counts = coupon_redemptions.groupby('household_id')['coupon_upc'].count()
     return counts.reindex(index, fill_value=0)
 
+def product_features(transactions, products):
+    df = transactions.merge(
+        products[['product_id', 'brand', 'department', 'product_category']],
+        on='product_id', how='left'
+    )
+
+    total_spend = df.groupby('household_id')['sales_value'].sum()
+    private_spend = df[df['brand'] == 'Private'].groupby('household_id')['sales_value'].sum()
+    private_share = (private_spend / total_spend).fillna(0).rename('private_label_share')
+
+    n_departments = df.groupby('household_id')['department'].nunique().rename('n_departments')
+
+
+
+    df['total_discount'] = df['retail_disc'].abs() + df['coupon_disc'].abs() + df['coupon_match_disc'].abs()
+    n_baskets = df.groupby('household_id')['basket_id'].nunique()
+    avg_discount = (df.groupby('household_id')['total_discount'].sum() / n_baskets).rename('avg_discount_per_trip')
+
+    return pd.concat([private_share, n_departments, avg_discount], axis=1)
+
 
 def build_features(transactions, campaigns, campaign_descriptions, promotions, products, spend_trend_data=None, visit_trend_data=None):
     """
