@@ -81,6 +81,7 @@ PLAN MOVING FORWARD:
     - deep learning 
     - Gradient boosting 
     - Newtons method 
+    - GAMs, generalized additive models 
 
 
 -For each model adjust hyperparameters, feature selection and combination of features, 
