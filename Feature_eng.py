@@ -151,54 +151,17 @@ def department_diversity(transactions, products):
     return department_diversity
 
 
-def spend_trend(transactions, k=1):
-    """
-    Calculate spend trend with temporal separation to avoid data leakage.
-    Uses the adaptive churn threshold to determine safe lag period.
-    
-    Parameters:
-        transactions : the transactions dataframe
-        k            : multiplier for standard deviation (should match adaptive_churn k value)
-    
-    Returns:
-        DataFrame with spend_trend for each household
-    """
-    transactions = transactions.copy()
+def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    
-    # Calculate maximum churn threshold to determine safe lag
-    houshold_trips = calculate_days_between_trips(transactions)
-    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
-    
-    # Max threshold = max(avg_days) + k * std(avg_days)
-    max_churn_threshold = household_avg_days['days_since_last_trip'].mean() + k * household_avg_days['days_since_last_trip'].std()
-    lag_days = int(np.ceil(max_churn_threshold)) + 5  # Add 5-day buffer for safety
-    
-    dataset_end_date = transactions['transaction_datetime'].max()
-    cutoff_date = dataset_end_date - pd.Timedelta(days=lag_days)
-    
-    # Only use transactions BEFORE cutoff_date to avoid leakage with churn label
-    transactions_for_features = transactions[transactions['transaction_datetime'] < cutoff_date].copy()
-    
-    # Calculate average days between trips per household for adaptive periods
-    houshold_trips = calculate_days_between_trips(transactions_for_features)
-    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
-    household_avg_days.columns = ['household_id', 'avg_days_between_trips']
-    
-    # Merge with transactions
-    transactions_for_features = transactions_for_features.merge(household_avg_days, on='household_id', how='left')
-    
-    # For each household, define recent and past periods based on their average shopping frequency
-    # Recent: last 2 * avg_days (roughly 2 shopping cycles)
-    # Past: 2 * avg_days to 4 * avg_days ago (roughly 2 shopping cycles before recent)
-    transactions_for_features['days_from_cutoff'] = (cutoff_date - transactions_for_features['transaction_datetime']).dt.days
-    transactions_for_features['recent'] = transactions_for_features['days_from_cutoff'] <= 2 * transactions_for_features['avg_days_between_trips']
-    transactions_for_features['past'] = (transactions_for_features['days_from_cutoff'] > 2 * transactions_for_features['avg_days_between_trips']) & (transactions_for_features['days_from_cutoff'] <= 4 * transactions_for_features['avg_days_between_trips'])
-    
-    # Calculate spend in adaptive recent and past periods
-    recent_spend = transactions_for_features[transactions_for_features['recent']].groupby('household_id')['sales_value'].sum()
-    past_spend = transactions_for_features[transactions_for_features['past']].groupby('household_id')['sales_value'].sum()
-    
+    #we want spend trend for each houshold id to be spend trend = recent spend (4-8 weeks ago)- past spend (8-12 weeks ago)/ past spend (8-12 weeks ago)
+    transactions['week'] = transactions['transaction_datetime'].dt.isocalendar().week
+    transactions['year'] = transactions['transaction_datetime'].dt.year
+    # Define recent and past periods
+    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
+    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=12))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8)))
+    # Calculate spend in recent and past periods
+    recent_spend = transactions[recent_period].groupby('household_id')['sales_value'].sum()
+    past_spend = transactions[past_period].groupby('household_id')['sales_value'].sum()
     # Calculate spend trend
     spend_trend = (recent_spend - past_spend) / past_spend.replace(0, np.nan)  # Avoid division by zero
     spend_trend = spend_trend.fillna(0)  # Replace NaN with 0 (no change if past spend is zero)
@@ -209,54 +172,15 @@ def spend_trend(transactions, k=1):
 #spend trend is a measure of how much a household's spending has changed recently compared to the past. 
 #A positive trend indicates increased spending, while a negative trend indicates decreased spending.
 
-def visit_trend(transactions, k=1):
-    """
-    Calculate visit trend with temporal separation to avoid data leakage.
-    Uses the adaptive churn threshold to determine safe lag period.
-    
-    Parameters:
-        transactions : the transactions dataframe
-        k            : multiplier for standard deviation (should match adaptive_churn k value)
-    
-    Returns:
-        DataFrame with visit_trend for each household
-    """
-    transactions = transactions.copy()
+def visit_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    
-    # Calculate maximum churn threshold to determine safe lag
-    houshold_trips = calculate_days_between_trips(transactions)
-    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
-    
-    # Max threshold = max(avg_days) + k * std(avg_days)
-    max_churn_threshold = household_avg_days['days_since_last_trip'].mean() + k * household_avg_days['days_since_last_trip'].std()
-    lag_days = int(np.ceil(max_churn_threshold)) + 5  # Add 5-day buffer for safety
-    
-    dataset_end_date = transactions['transaction_datetime'].max()
-    cutoff_date = dataset_end_date - pd.Timedelta(days=lag_days)
-    
-    # Only use transactions BEFORE cutoff_date to avoid leakage with churn label
-    transactions_for_features = transactions[transactions['transaction_datetime'] < cutoff_date].copy()
-    
-    # Calculate average days between trips per household for adaptive periods
-    houshold_trips = calculate_days_between_trips(transactions_for_features)
-    household_avg_days = houshold_trips.groupby('household_id')['days_since_last_trip'].mean().reset_index()
-    household_avg_days.columns = ['household_id', 'avg_days_between_trips']
-    
-    # Merge with transactions
-    transactions_for_features = transactions_for_features.merge(household_avg_days, on='household_id', how='left')
-    
-    # For each household, define recent and past periods based on their average shopping frequency
-    # Recent: last 2 * avg_days (roughly 2 shopping cycles)
-    # Past: 2 * avg_days to 4 * avg_days ago (roughly 2 shopping cycles before recent)
-    transactions_for_features['days_from_cutoff'] = (cutoff_date - transactions_for_features['transaction_datetime']).dt.days
-    transactions_for_features['recent'] = transactions_for_features['days_from_cutoff'] <= 2 * transactions_for_features['avg_days_between_trips']
-    transactions_for_features['past'] = (transactions_for_features['days_from_cutoff'] > 2 * transactions_for_features['avg_days_between_trips']) & (transactions_for_features['days_from_cutoff'] <= 4 * transactions_for_features['avg_days_between_trips'])
-    
-    # Calculate number of visits (transactions) in adaptive recent and past periods
-    recent_visits = transactions_for_features[transactions_for_features['recent']].groupby('household_id').size()
-    past_visits = transactions_for_features[transactions_for_features['past']].groupby('household_id').size()
-    
+    #we want visit trend for each houshold id to be visit trend = recent visits (4-8 weeks ago)- past visits (8-12 weeks ago)/ past visits (8-12 weeks ago)
+    # Define recent and past periods
+    recent_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=4)))
+    past_period = (transactions['transaction_datetime'] >= (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=12))) & (transactions['transaction_datetime'] < (transactions['transaction_datetime'].max() - pd.Timedelta(weeks=8)))
+    # Calculate number of visits (transactions) in recent and past periods
+    recent_visits = transactions[recent_period].groupby('household_id').size()
+    past_visits = transactions[past_period].groupby('household_id').size()
     # Calculate visit trend
     visit_trend = (recent_visits - past_visits) / past_visits.replace(0, np.nan)  # Avoid division by zero
     visit_trend = visit_trend.fillna(0)  # Replace NaN with 0 (no change if past visits is zero)
