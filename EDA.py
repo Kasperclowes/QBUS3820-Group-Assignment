@@ -543,12 +543,87 @@ def clean_promotions(promotions):
     duplicates= promotions.duplicated().sum()
     print(f"Number of duplicate rows: {duplicates}")
 
-    for col in ordinal_categorical_promotions:
-        print(f"\n{col.upper()} - Unique Values:")
-        print(transactions[col].unique())
+def analyse_promotions(promotions, transactions, churn_train):
+    promo_transactions = transactions.merge(
+        promotions, on=['product_id', 'store_id', 'week'], how='left'
+    )
+    promo_transactions['on_promotion'] = (
+        promo_transactions['display_location'].notna() |
+        promo_transactions['mailer_location'].notna()
+    )
 
-        print("Week number- Unique Values:")
-        print(transactions['week'].unique())
+    promo_rate = promo_transactions['on_promotion'].mean()
+    print(f"Promotion coverage: {promo_rate:.1%} of purchased products were on promotion")
+
+    hh_promo_rate = promo_transactions.groupby('household_id')['on_promotion'].mean()
+    hh_promo_churn = hh_promo_rate.to_frame().join(churn_train)
+
+    print("\nPromotion usage by churn status:")
+    for val, label in [(0, 'Retained'), (1, 'Churned')]:
+        avg = hh_promo_churn[hh_promo_churn['churn'] == val]['on_promotion'].mean()
+        print(f"   {label}: {avg:.1%} of purchases on promotion")
+
+    print("\nDisplay location distribution:")
+    for loc, count in promotions['display_location'].value_counts().items():
+        print(f"   {loc}: {count:,} ({count / len(promotions):.1%})")
+
+    print("\nMailer location distribution:")
+    for loc, count in promotions['mailer_location'].value_counts().items():
+        print(f"   {loc}: {count:,} ({count / len(promotions):.1%})")
+
+def plot_promotions_analysis(promotions, transactions, churn_train):
+    promo_transactions = transactions.merge(
+        promotions, on=['product_id', 'store_id', 'week'], how='left'
+    )
+    promo_transactions['on_promotion'] = (
+        promo_transactions['display_location'].notna() |
+        promo_transactions['mailer_location'].notna()
+    )
+    hh_promo_rate = promo_transactions.groupby('household_id')['on_promotion'].mean()
+    hh_promo_churn = hh_promo_rate.to_frame('promo_purchase_rate').join(churn_train)
+
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Promotions Analysis Overview', fontsize=16, fontweight='bold')
+
+    # Top display locations
+    promotions['display_location'].value_counts().head(8).sort_values().plot(
+        kind='barh', ax=axes[0, 0], alpha=0.7)
+    axes[0, 0].set_title('Top 8 Display Locations')
+    axes[0, 0].set_xlabel('Number of Promotions')
+
+    # Top mailer locations
+    promotions['mailer_location'].value_counts().head(8).sort_values().plot(
+        kind='barh', ax=axes[0, 1], alpha=0.7)
+    axes[0, 1].set_title('Top 8 Mailer Locations')
+    axes[0, 1].set_xlabel('Number of Promotions')
+
+    # Promo purchase rate by churn status
+    for val, label in [(0, 'Retained'), (1, 'Churned')]:
+        axes[1, 0].hist(
+            hh_promo_churn[hh_promo_churn['churn'] == val]['promo_purchase_rate'],
+            bins=20, alpha=0.6, label=label, density=True
+        )
+    axes[1, 0].set_title('Promotion Purchase Rate by Churn Status')
+    axes[1, 0].set_xlabel('Proportion of Purchases on Promotion')
+    axes[1, 0].set_ylabel('Density')
+    axes[1, 0].legend()
+
+    # Churn rate by promo purchase rate bucket
+    hh_promo_churn['promo_bin'] = pd.cut(hh_promo_churn['promo_purchase_rate'], bins=5)
+    churn_by_promo = hh_promo_churn.groupby('promo_bin', observed=True)['churn'].mean()
+    churn_by_promo.plot(kind='bar', ax=axes[1, 1], alpha=0.7)
+    axes[1, 1].set_title('Churn Rate by Promotion Purchase Rate')
+    axes[1, 1].set_xlabel('Proportion of Purchases on Promotion')
+    axes[1, 1].set_ylabel('Churn Rate')
+    axes[1, 1].tick_params(axis='x', rotation=30)
+
+    for ax in axes.flat:
+        ax.grid(False)
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 def clean_products(products):
     products.info()
