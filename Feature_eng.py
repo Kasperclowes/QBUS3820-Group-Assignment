@@ -280,7 +280,7 @@ def promotion_features(promotions, transactions):
 
 
 
-def build_features(transactions, campaigns, campaign_descriptions, promotions, products, spend_trend_data=None, visit_trend_data=None):
+def build_features(transactions, campaigns, campaign_descriptions, promotions, spend_trend_data=None, visit_trend_data=None):
     """
     Concatenate all features to create X_train for decision tree.
     
@@ -289,7 +289,6 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions, p
         campaigns                 : campaigns dataframe
         campaign_descriptions     : campaign_descriptions dataframe
         promotions               : promotions dataframe
-        products                 : products dataframe
         spend_trend_data         : pre-computed spend_trend (optional, computed if None)
         visit_trend_data         : pre-computed visit_trend (optional, computed if None)
     
