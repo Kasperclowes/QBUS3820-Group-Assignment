@@ -38,6 +38,15 @@ The DEFINITION of a CHURN classification RELY ON:
 In training data, this will be used as a churn/no churn 
 classifier to train the data. 
 
+
+Alternative ADAPTIVE churn DEFINITION: 
+
+Instead of having a constant churn definition of no transaction in past 3/4 weeks like before
+we want to make an adaptive churn definition for each unique houshold. Recording the time between each 
+transaction that one unqie houshold has done over the entire recorded time period, and then finding 
+the average time between a transaction for this household. This would make each churn definition for each household be 
+adapted to the behaviour of the houshold.  
+
 Report structure: 
 
 Your report should clearly communicate your analysis, modelling decisions, and recommendations
