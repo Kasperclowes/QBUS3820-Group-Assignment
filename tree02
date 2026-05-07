@@ -1,0 +1,25 @@
+digraph Tree {
+node [shape=box, style="rounded", color="black", fontname="helvetica"] ;
+edge [fontname="helvetica"] ;
+0 [label="days_since_last_purchase <= 16.5\nsamples = 1724\nvalue = [1335, 389]\nclass = No-Churn"] ;
+1 [label="total_transactions <= 595.0\nsamples = 1265\nvalue = [1118, 147]\nclass = No-Churn"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="total_spend <= 392.88\nsamples = 689\nvalue = [557, 132]\nclass = No-Churn"] ;
+1 -> 2 ;
+3 [label="samples = 157\nvalue = [104, 53]\nclass = No-Churn"] ;
+2 -> 3 ;
+4 [label="samples = 532\nvalue = [453, 79]\nclass = No-Churn"] ;
+2 -> 4 ;
+5 [label="samples = 576\nvalue = [561, 15]\nclass = No-Churn"] ;
+1 -> 5 ;
+6 [label="total_spend <= 108.915\nsamples = 459\nvalue = [217, 242]\nclass = Churn"] ;
+0 -> 6 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+7 [label="samples = 86\nvalue = [11, 75]\nclass = Churn"] ;
+6 -> 7 ;
+8 [label="days_since_last_purchase <= 31.5\nsamples = 373\nvalue = [206, 167]\nclass = No-Churn"] ;
+6 -> 8 ;
+9 [label="samples = 177\nvalue = [123, 54]\nclass = No-Churn"] ;
+8 -> 9 ;
+10 [label="samples = 196\nvalue = [83, 113]\nclass = Churn"] ;
+8 -> 10 ;
+}

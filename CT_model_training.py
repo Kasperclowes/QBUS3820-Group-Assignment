@@ -102,5 +102,49 @@ def cost_complexity_pruning(X_train, y_train, features):
     dot_data = export_graphviz(tree, out_file=None , impurity=False, feature_names = features,
                            class_names=['No-churn','Churn'], rounded=True) 
     graph = graphviz.Source(dot_data)
-    graph.render('tree02') # saves tree to a file
+    graph.render('tree02', format='png') # saves tree to a file
     graph
+
+def plot_feature_importance(model, feature_names, top_n=15):
+    """
+    Plot feature importance for tree-based models
+    
+    Parameters:
+    -----------
+    model : fitted model object
+        The tree-based model with feature_importances_ attribute
+    feature_names : list
+        List of feature names
+    top_n : int, default=15
+        Number of top features to display
+    """
+    # Get feature importances
+    importances = model.feature_importances_
+    
+    # Create DataFrame for better handling
+    feat_imp = pd.DataFrame({
+        'Feature': feature_names,
+        'Importance': importances
+    })
+    
+    # Sort by importance
+    feat_imp = feat_imp.sort_values('Importance', ascending=False)
+    
+    # Select top N features
+    if len(feat_imp) > top_n:
+        feat_imp = feat_imp.iloc[:top_n]
+    
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.barh(feat_imp['Feature'], feat_imp['Importance'], color='#4E79A7')
+    plt.xlabel('Importance')
+    plt.ylabel('Feature')
+    plt.title('Feature Importance', fontsize=14)
+    plt.gca().invert_yaxis()  # Display highest importance at the top
+    plt.tight_layout()
+    sns.despine()
+    
+    return feat_imp
+
+plot_feature_importance(rf, features)
+plt.show()
