@@ -146,5 +146,3 @@ def plot_feature_importance(model, feature_names, top_n=15):
     
     return feat_imp
 
-plot_feature_importance(rf, features)
-plt.show()
