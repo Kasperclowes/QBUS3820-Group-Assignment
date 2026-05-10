@@ -270,10 +270,8 @@ def promotion_features(promotions, transactions):
     )
     promo_transactions['on_display'] = promo_transactions['display_location'] != '0'
     promo_transactions['on_mailer'] = promo_transactions['mailer_location'] != '0'
-    promo_transactions['on_promotion'] = promo_transactions['on_display'] | promo_transactions['on_mailer']
 
     return promo_transactions.groupby('household_id').agg(
-        promo_purchase_rate=('on_promotion', 'mean'),
         display_purchase_rate=('on_display', 'mean'),
         mailer_purchase_rate=('on_mailer', 'mean'),
     )

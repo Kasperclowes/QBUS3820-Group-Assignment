@@ -816,6 +816,8 @@ def plot_spend_by_product_attribute(transactions_train, products):
     print(f"Median basket diversity: {basket_diversity.median():.0f} unique categories")
     print(f"Mean basket diversity:   {basket_diversity.mean():.1f} unique categories")
 
+    return basket_diversity, brand_spend, dept_spend
+
 def plot_churn_product_features(transactions_train, products, churn_train):
     df = transactions_train.merge(
         products[['product_id', 'brand', 'department', 'product_category']],
