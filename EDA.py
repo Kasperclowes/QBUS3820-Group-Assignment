@@ -277,7 +277,7 @@ def mutual_information_table(data, target, continuous=None, discrete=None, categ
     Parameters:
     - data: DataFrame with all features and target
     - target: Target variable (Series or array)
-    - continuous: List of continuous feature names
+    - continuous: List of continuous feature names (auto-detected if None)
     - discrete: List of discrete feature names
     - categorical: List of categorical feature names
     - binary: List of binary feature names
@@ -290,6 +290,13 @@ def mutual_information_table(data, target, continuous=None, discrete=None, categ
     discrete = list(discrete) if discrete is not None else []
     categorical = list(categorical) if categorical is not None else []
     binary = list(binary) if binary is not None else []
+
+    # Auto-detect feature types if none specified
+    if len(continuous) == 0 and len(discrete) == 0 and len(categorical) == 0 and len(binary) == 0:
+        numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
+        non_numeric_cols = data.select_dtypes(exclude=[np.number]).columns.tolist()
+        continuous = numeric_cols
+        categorical = non_numeric_cols
 
     frames = []
 

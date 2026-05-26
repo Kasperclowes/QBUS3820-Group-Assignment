@@ -86,3 +86,10 @@ PLAN MOVING FORWARD:
 
 -For each model adjust hyperparameters, feature selection and combination of features, 
 test to see what minimizes validation loss the most 
+
+
+Plan moving forward 26/05/2026
+
+- Improve model performances with improved and new features 
+- Implement SHAP values if time to evaluate contribution of features inside the actual model
+- Implement new model- Neural Network to see about its performance 
