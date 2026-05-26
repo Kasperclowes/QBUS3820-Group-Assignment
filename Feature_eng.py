@@ -179,10 +179,23 @@ def days_since_last_purchase(transactions):
     
     return days_since_last
 
+def n_campaigns_targeted(campaigns, transactions):
+    household_ids = transactions['household_id'].unique()
+    counts = campaigns.groupby('household_id')['campaign_id'].nunique()
+    return counts.reindex(household_ids, fill_value=0).rename('n_campaigns_targeted')
+
+def was_targeted(campaigns, transactions):
+    household_ids = transactions['household_id'].unique()
+    targeted = set(campaigns['household_id'].unique())
+    return pd.Series(
+        [1 if hh in targeted else 0 for hh in household_ids],
+        index=household_ids,
+        name='was_targeted'
+    )
 
 def spend_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    
+    #we want spend trend for each houshold id to be spend trend = recent spend (4-8 weeks ago)- past spend (8-12 weeks ago)/ past spend (8-12 weeks ago)
     # Get all unique household_ids in the dataset
     all_households = transactions['household_id'].unique()
     
@@ -199,14 +212,13 @@ def spend_trend(transactions):
     spend_trend = spend_trend.fillna(0)  # Replace NaN with 0 (no change if past spend is zero)
     spend_trend = spend_trend.to_frame()
     spend_trend.columns = ['spend_trend']
-    
-    # Find households with no transactions in the period (churned) and assign -1
+     # Find households with no transactions in the period (churned) and assign -1
     households_with_trends = set(spend_trend.index)
     missing_households = set(all_households) - households_with_trends
     if len(missing_households) > 0:
         missing_df = pd.DataFrame({'spend_trend': -1.0}, index=pd.Index(missing_households, name='household_id'))
         spend_trend = pd.concat([spend_trend, missing_df])
-    
+
     return spend_trend
 
 #spend trend is a measure of how much a household's spending has changed recently compared to the past. 
@@ -214,7 +226,9 @@ def spend_trend(transactions):
 
 def visit_trend(transactions):
     transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
-    
+    #we want visit trend for each houshold id to be visit trend = recent visits (4-8 weeks ago)- past visits (8-12 weeks ago)/ past visits (8-12 weeks ago)
+    # Define recent and past periods
+     
     # Get all unique household_ids in the dataset
     all_households = transactions['household_id'].unique()
     
@@ -231,18 +245,95 @@ def visit_trend(transactions):
     visit_trend = visit_trend.fillna(0)  # Replace NaN with 0 (no change if past visits is zero)
     visit_trend = visit_trend.to_frame()
     visit_trend.columns = ['visit_trend']
-    
-    # Find households with no transactions in the period (churned) and assign -1
+
     households_with_trends = set(visit_trend.index)
     missing_households = set(all_households) - households_with_trends
     if len(missing_households) > 0:
         missing_df = pd.DataFrame({'visit_trend': -1.0}, index=pd.Index(missing_households, name='household_id'))
         visit_trend = pd.concat([visit_trend, missing_df])
-    
     return visit_trend
 
 #visit trend is a measure of how much a household's visit frequency has changed recently compared to the past. 
 #A positive trend indicates increased visit frequency, while a negative trend indicates decreased visit frequency.
+
+def visit_acceleration(transactions):
+    """
+    Compute visit acceleration - the rate of change in visit frequency.
+    
+    Step 1: Compute recent trend = visits last 30d - visits previous 30d
+    Step 2: Compute older trend = visits previous 30d - visits 30-60d before that
+    Step 3: Acceleration = recent trend - older trend
+    
+    Positive acceleration indicates increasing visit frequency.
+    Negative acceleration indicates decreasing visit frequency.
+    """
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    max_date = transactions['transaction_datetime'].max()
+    
+    # Get all unique household_ids in the dataset
+    all_households = transactions['household_id'].unique()
+    
+    # Define three 30-day periods
+    period_last_30d = (transactions['transaction_datetime'] >= (max_date - pd.Timedelta(days=30)))
+    period_prev_30d = (transactions['transaction_datetime'] >= (max_date - pd.Timedelta(days=60))) & (transactions['transaction_datetime'] < (max_date - pd.Timedelta(days=30)))
+    period_60_90d = (transactions['transaction_datetime'] >= (max_date - pd.Timedelta(days=90))) & (transactions['transaction_datetime'] < (max_date - pd.Timedelta(days=60)))
+    
+    # Count visits in each period
+    visits_last_30d = transactions[period_last_30d].groupby('household_id').size()
+    visits_prev_30d = transactions[period_prev_30d].groupby('household_id').size()
+    visits_60_90d = transactions[period_60_90d].groupby('household_id').size()
+    
+    # Fill missing households with 0 visits
+    visits_last_30d = visits_last_30d.reindex(all_households, fill_value=0)
+    visits_prev_30d = visits_prev_30d.reindex(all_households, fill_value=0)
+    visits_60_90d = visits_60_90d.reindex(all_households, fill_value=0)
+    
+    # Calculate trends
+    recent_trend = visits_last_30d - visits_prev_30d
+    older_trend = visits_prev_30d - visits_60_90d
+    
+    # Calculate acceleration
+    acceleration = recent_trend - older_trend
+    
+    acceleration = acceleration.to_frame()
+    acceleration.columns = ['visit_acceleration']
+    
+    return acceleration
+
+def engagement_ratio(transactions):
+    """
+    Compute engagement ratio - the ratio of recent spending to historical spending.
+    
+    engagement_ratio = last 30d total spend / previous 90d total spend
+    
+    Values > 1 indicate increased engagement, < 1 indicate decreased engagement.
+    """
+    transactions['transaction_datetime'] = pd.to_datetime(transactions['transaction_timestamp'])
+    max_date = transactions['transaction_datetime'].max()
+    
+    # Get all unique household_ids in the dataset
+    all_households = transactions['household_id'].unique()
+    
+    # Define periods
+    period_last_30d = (transactions['transaction_datetime'] >= (max_date - pd.Timedelta(days=30)))
+    period_prev_90d = (transactions['transaction_datetime'] >= (max_date - pd.Timedelta(days=120))) & (transactions['transaction_datetime'] < (max_date - pd.Timedelta(days=30)))
+    
+    # Calculate total spend in each period
+    spend_last_30d = transactions[period_last_30d].groupby('household_id')['sales_value'].sum()
+    spend_prev_90d = transactions[period_prev_90d].groupby('household_id')['sales_value'].sum()
+    
+    # Fill missing households with 0 spend
+    spend_last_30d = spend_last_30d.reindex(all_households, fill_value=0)
+    spend_prev_90d = spend_prev_90d.reindex(all_households, fill_value=0)
+    
+    # Calculate engagement ratio (avoid division by zero)
+    engagement_ratio = spend_last_30d / spend_prev_90d.replace(0, np.nan)
+    engagement_ratio = engagement_ratio.fillna(0)  # If previous spend is 0, set ratio to 0
+    
+    engagement_ratio = engagement_ratio.to_frame()
+    engagement_ratio.columns = ['engagement_ratio']
+    
+    return engagement_ratio
 
 def campaign_features(campaign_descriptions, campaigns, index):
 
@@ -327,6 +418,8 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions,co
     days_since_last_purchase_feat = days_since_last_purchase(transactions).to_frame(name='days_since_last_purchase')
     coupon_redemption_feat = coupon_redemption_count(coupon_redemptions, index=all_households).to_frame(name='coupon_redemption_count')
     product_feat = product_features(transactions, products)
+    acceleration_feat = visit_acceleration(transactions)
+    engagement_feat = engagement_ratio(transactions)
     # Use pre-computed trends if provided, otherwise compute
     if spend_trend_data is None:
         spend_trend_feat = spend_trend(transactions)
@@ -356,7 +449,9 @@ def build_features(transactions, campaigns, campaign_descriptions, promotions,co
         visit_trend_feat,
         campaign_feat,
         promotion_feat, 
-        product_feat
+        product_feat,
+        acceleration_feat,
+        engagement_feat
     ], axis=1)
     
     # Ensure all households are represented (fill missing rows with 0)
