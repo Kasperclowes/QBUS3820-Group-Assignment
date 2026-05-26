@@ -102,11 +102,11 @@ Plan moving forward 26/05/2026
         - spend_percentile
         - spend_vs_segment_average
 
-        Derive engagement ration = last 30d spend/last 90d spend
+        Derive engagement ratio = last 30d spend/last 90d spend
 
     Temporal/ Trend features : 
 
-        - spend velocity = 
+        - visit accelation 
 
 - Implement SHAP values if time to evaluate contribution of features inside the actual model
 - Implement new model- Neural Network to see about its performance 
