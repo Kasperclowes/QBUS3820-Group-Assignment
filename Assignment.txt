@@ -86,3 +86,27 @@ PLAN MOVING FORWARD:
 
 -For each model adjust hyperparameters, feature selection and combination of features, 
 test to see what minimizes validation loss the most 
+
+
+Plan moving forward 26/05/2026
+
+- Improve model performances with improved and new features 
+    Window based behavoiral features:
+        - spend_last_7d
+        - spend_last_30d
+        - spend_last_90d
+        - spend_change_30_90
+        - spend_acceleration
+        - spend_volatility
+        - spend_per_visit
+        - spend_percentile
+        - spend_vs_segment_average
+
+        Derive engagement ratio = last 30d spend/last 90d spend
+
+    Temporal/ Trend features : 
+
+        - visit accelation 
+
+- Implement SHAP values if time to evaluate contribution of features inside the actual model
+- Implement new model- Neural Network to see about its performance 
