@@ -69,7 +69,7 @@ class NeuralNetwork(nn.Module):
         probs_class_0 = 1 - probs_class_1
         return np.column_stack([probs_class_0, probs_class_1])
     
-    def predict(self, X, threshold=0.3):
+    def predict(self, X, threshold=0.5):
         """
         Get binary predictions using the specified threshold.
         Returns array of 0s and 1s
