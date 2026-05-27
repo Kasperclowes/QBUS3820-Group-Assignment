@@ -1,5 +1,7 @@
 # Requirements 
 
+import random
+
 import numpy as np
 import scipy 
 import pandas as pd
@@ -25,6 +27,8 @@ print(f'torch {torch.__version__}')
 from torch.utils.data import DataLoader, TensorDataset
 from torch import nn
 from torch.utils.data import TensorDataset
+
+
 
 class NeuralNetwork(nn.Module):
     def __init__(self, input_features=31, hidden_size=128):
@@ -179,6 +183,23 @@ def update_training_table(table, net, validset, epoch, duration, y_valid):
 
 def train(model, train_loader, valid_dataset, y_valid, num_epochs = 5 , lr = 1e-3):
     
+    import random
+    import numpy as np
+    import torch
+
+    # Set random seeds for reproducibility
+    random.seed(42)
+    np.random.seed(42)
+    torch.manual_seed(42)
+
+    # If using CUDA (GPU)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
     # Get device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
